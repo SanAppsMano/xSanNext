@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SanNext Cliente</title>
+  <link rel="stylesheet" href="css/client.css"/>
+</head>
+<body>
+  
+  <header class="client-header">
+    <div class="logo"></div>
+    <div class="company-name" id="company-name">–</div>
+  </header>
+
+  <main class="container">
+    <div class="app-label">SanNext</div>
+    <p class="label">Seu número:</p>
+    <div id="ticket" class="ticket">–</div>
+    <div id="status" class="status">Aguardando chamada...</div>
+    <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
+    <button id="btn-join" class="btn-join" hidden>Entrar na fila</button>
+    <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
+    <audio id="alert-sound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+  </main>
+
+  <div id="overlay">
+    <button id="btn-start">Toque para ativar alertas</button>
+  </div>
+
+  <script src="js/client.js"></script>
+</body>
+</html>

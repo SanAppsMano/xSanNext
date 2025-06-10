@@ -1,0 +1,156 @@
+/* public/client/css/client.css */
+
+/* === Variáveis de tema === */
+:root {
+  --primary: #005f8c;
+  --accent:  #f5a623;
+  --bg:      #ffffff;
+  --text:    #333333;
+  --muted:   #777777;
+  --danger:  #d0021b;
+  --radius:  8px;
+  --font:    'Helvetica Neue', Arial, sans-serif;
+}
+
+/* === Animações === */
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75%     { opacity: 0; }
+}
+.blink {
+  animation: blink 1s linear infinite;
+}
+
+/* === Reset & Box sizing === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* === Body & Layout === */
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* === Header === */
+.client-header {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+.logo {
+  /* Espaço reservado para logomarca ou ícone */
+  height: 2rem;
+  margin-bottom: 0.25rem;
+}
+.company-name {
+  font-size: 1.5rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* === Main Container === */
+.container {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+/* Label do App */
+.app-label {
+  font-size: 1.25rem;
+  color: var(--accent);
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+/* Texto “Seu número:” */
+.label {
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+/* Número do ticket */
+.ticket {
+  font-size: 5rem;
+  font-weight: bold;
+  color: var(--text);
+  margin: 0.5rem 0;
+}
+
+/* Status de chamada */
+.status {
+  font-size: 1.125rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  min-height: 1.5em;
+}
+
+/* === Botões === */
+button {
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel {
+  background: var(--danger);
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.btn-join {
+  background: var(--primary);
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.btn-cancel:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+.btn-silence {
+  background: var(--muted);
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.btn-silence[hidden] {
+  display: none;
+}
+.btn-silence:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+/* === Overlay de desbloqueio de alertas === */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10;
+}
+#btn-start {
+  width: auto;
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+}
