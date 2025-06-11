@@ -12,3 +12,17 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
+
+self.addEventListener('push', e => {
+  let data = {};
+  if (e.data) {
+    try { data = e.data.json(); } catch { data = { body: e.data.text() }; }
+  }
+  const title = data.title || 'SanNext';
+  const options = {
+    body: data.body,
+    vibrate: [200, 100, 200],
+  };
+  if (data.sound) options.sound = data.sound;
+  e.waitUntil(self.registration.showNotification(title, options));
+});

@@ -4,8 +4,9 @@
 const urlParams = new URL(location).searchParams;
 const tenantId  = urlParams.get("t");
 
+let swReg = null;
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(console.error);
+  navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(console.error);
 }
 
 // pega também o nome da empresa
@@ -51,6 +52,20 @@ function releaseWakeLock() {
   }
 }
 
+async function subscribePush() {
+  if (!swReg || !('pushManager' in swReg)) return null;
+  try {
+    let sub = await swReg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await swReg.pushManager.subscribe({ userVisibleOnly: true });
+    }
+    return sub;
+  } catch (e) {
+    console.error('subscribePush', e);
+    return null;
+  }
+}
+
 function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
@@ -92,7 +107,12 @@ btnStart.addEventListener("click", () => {
 });
 
 async function getTicket() {
-  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`);
+  const subscription = await subscribePush();
+  const res = await fetch(`/.netlify/functions/entrar?t=${tenantId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscription })
+  });
   const data = await res.json();
   clientId     = data.clientId;
   ticketNumber = data.ticketNumber;

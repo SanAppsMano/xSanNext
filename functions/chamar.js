@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import notifyTicket from "./notifyTicket.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
@@ -76,6 +77,16 @@ export async function handler(event) {
     prefix + "log:called",
     JSON.stringify({ ticket: next, attendant, ts, wait })
   );
+
+  const subRaw = await redis.get(prefix + `subscription:${next}`);
+  if (subRaw) {
+    try {
+      const sub = JSON.parse(subRaw);
+      await notifyTicket(sub, next);
+    } catch (e) {
+      console.error('notifyTicket', e);
+    }
+  }
 
   return {
     statusCode: 200,

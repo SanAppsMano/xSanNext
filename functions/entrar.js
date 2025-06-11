@@ -11,11 +11,22 @@ export async function handler(event) {
   const redis  = Redis.fromEnv();
   const prefix = `tenant:${tenantId}:`;
 
+  let subscription = null;
+  if (event.httpMethod === 'POST') {
+    try {
+      const body = JSON.parse(event.body || '{}');
+      subscription = body.subscription || null;
+    } catch {}
+  }
+
   // Cria clientId e incrementa contador de tickets
   const clientId     = uuidv4();
   const ticketNumber = await redis.incr(prefix + "ticketCounter");
   await redis.set(prefix + `ticket:${clientId}`, ticketNumber);
   await redis.set(prefix + `ticketTime:${ticketNumber}`, Date.now());
+  if (subscription) {
+    await redis.set(prefix + `subscription:${ticketNumber}`, JSON.stringify(subscription));
+  }
 
   // Log de entrada
   const ts = Date.now();

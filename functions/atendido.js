@@ -35,6 +35,7 @@ export async function handler(event) {
   const duration = callTs ? Date.now() - callTs : 0;
   const wait = Number(await redis.get(prefix + `wait:${ticket}`) || 0);
   await redis.del(prefix + `wait:${ticket}`);
+  await redis.del(prefix + `subscription:${ticket}`);
 
   // Limpa a chamada atual para evitar que o número seja marcado como perdido
   await redis.set(prefix + "currentCall", 0);
