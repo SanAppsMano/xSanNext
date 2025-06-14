@@ -12,3 +12,17 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
+
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data.json(); } catch {}
+  const title = data.title || 'É a sua vez!';
+  const options = {
+    body: data.body || '',
+    vibrate: [200,100,200],
+    tag: 'sannext-call',
+    renotify: true,
+    requireInteraction: true,
+  };
+  e.waitUntil(self.registration.showNotification(title, options));
+});

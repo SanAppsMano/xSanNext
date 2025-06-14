@@ -27,6 +27,37 @@ const btnStart   = document.getElementById("btn-start");
 const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
+async function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission !== 'granted') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    try {
+      const res = await fetch('/.netlify/functions/sendPush');
+      const { publicKey } = await res.json();
+      const uintKey = Uint8Array.from(atob(publicKey.replace(/_/g, '/').replace(/-/g, '+')), c => c.charCodeAt(0));
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: uintKey });
+      localStorage.setItem('pushSub', JSON.stringify(sub));
+    } catch (e) {
+      console.error('push subscribe', e);
+      return;
+    }
+  }
+  try {
+    await fetch('/.netlify/functions/sendPush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId, subscription: sub })
+    });
+  } catch (e) {
+    console.error('register push', e);
+  }
+}
+
 let clientId, ticketNumber;
 let polling, alertInterval;
 let lastEventTs = 0;
@@ -88,6 +119,7 @@ btnStart.addEventListener("click", () => {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
+  subscribePush();
   polling = setInterval(checkStatus, 2000);
 });
 
@@ -103,6 +135,7 @@ async function getTicket() {
   btnJoin.hidden = true;
   callStartTs = 0;
   lastEventTs = 0;
+  subscribePush();
 }
 
 async function checkStatus() {
@@ -225,5 +258,6 @@ btnCancel.addEventListener("click", async () => {
 btnJoin.addEventListener("click", () => {
   btnJoin.disabled = true;
   getTicket();
+  subscribePush();
   polling = setInterval(checkStatus, 2000);
 });
