@@ -119,6 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let attendedNums   = [];
   let attendedCount  = 0;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
+  const msToHms = (ms) => {
+    if (!ms) return '-';
+    const s = Math.floor(ms / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2,'0');
+    const m = String(Math.floor((s % 3600)/60)).padStart(2,'0');
+    const sec = String(s % 60).padStart(2,'0');
+    return `${h}:${m}:${sec}`;
+  };
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
@@ -264,8 +272,8 @@ function startBouncingCompanyName(text) {
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
         const li = document.createElement('li');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
       });
@@ -274,8 +282,8 @@ function startBouncingCompanyName(text) {
       missed.forEach(({ ticket, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('missed');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         missedListEl.appendChild(li);
       });
@@ -294,8 +302,8 @@ function startBouncingCompanyName(text) {
       attended.forEach(({ ticket, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('attended');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         attendedListEl.appendChild(li);
       });
@@ -338,7 +346,9 @@ function startBouncingCompanyName(text) {
       missedCount = 0,
       waitingCount = 0,
       avgWait = 0,
-      avgDur = 0
+      avgDur = 0,
+      avgWaitHms = '00:00:00',
+      avgDurHms = '00:00:00'
     } = summary;
 
     if (!tickets.length &&
@@ -352,8 +362,8 @@ function startBouncingCompanyName(text) {
       reportSummary.innerHTML = `
         <p>Total de tickets: ${totalTickets}</p>
         <p>Atendidos: ${attendedCount}</p>
-        <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
-        <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
+        <p>Tempo médio de espera: ${avgWaitHms}</p>
+        <p>Tempo médio de atendimento: ${avgDurHms}</p>
         <p>Cancelados: ${cancelledCount}</p>
         <p>Perderam a vez: ${missedCount}</p>
         <p>Em espera: ${waitingCount}</p>`;
@@ -361,7 +371,7 @@ function startBouncingCompanyName(text) {
 
     // Monta tabela
     const table = document.getElementById('report-table');
-    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera(s)</th><th>Duração(s)</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
     const tbody = document.createElement('tbody');
     const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
     const label = (st) => ({
@@ -380,8 +390,8 @@ function startBouncingCompanyName(text) {
         <td>${tk.calledBr || fmt(tk.called)}</td>
         <td>${tk.attendedBr || fmt(tk.attended)}</td>
         <td>${tk.cancelledBr || fmt(tk.cancelled)}</td>
-        <td>${tk.wait ? Math.round(tk.wait/1000) : '-'}</td>
-        <td>${tk.duration ? Math.round(tk.duration/1000) : '-'}</td>`;
+        <td>${tk.waitHms || msToHms(tk.wait)}</td>
+        <td>${tk.durationHms || msToHms(tk.duration)}</td>`;
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -395,7 +405,7 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
-      const rows = [['ticket','status','entered','called','attended','cancelled','wait_ms','duration_ms']];
+      const rows = [['ticket','status','entered','called','attended','cancelled','wait_hms','duration_hms']];
       if (tickets.length) {
         tickets.forEach(tk => rows.push([
           tk.ticket,
@@ -404,8 +414,8 @@ function startBouncingCompanyName(text) {
           tk.calledBr || fmt(tk.called) || '',
           tk.attendedBr || fmt(tk.attended) || '',
           tk.cancelledBr || fmt(tk.cancelled) || '',
-          tk.wait || '',
-          tk.duration || ''
+          tk.waitHms || msToHms(tk.wait) || '',
+          tk.durationHms || msToHms(tk.duration) || ''
         ]));
       } else {
         rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '']);
@@ -423,8 +433,8 @@ function startBouncingCompanyName(text) {
       doc.text('Relatório', 10, 10);
       doc.text(`Total de tickets: ${totalTickets}`, 10, 20);
       doc.text(`Atendidos: ${attendedCount}`, 10, 30);
-      doc.text(`Tempo médio de espera: ${Math.round(avgWait/1000)}s`, 10, 40);
-      doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 50);
+      doc.text(`Tempo médio de espera: ${avgWaitHms}`, 10, 40);
+      doc.text(`Tempo médio de atendimento: ${avgDurHms}`, 10, 50);
       doc.text(`Cancelados: ${cancelledCount}`, 10, 60);
       doc.text(`Perderam a vez: ${missedCount}`, 10, 70);
       doc.text(`Em espera: ${waitingCount}`, 10, 80);

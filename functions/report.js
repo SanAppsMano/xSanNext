@@ -124,6 +124,14 @@ export async function handler(event) {
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
   // Helper para exibir datas no formato brasileiro
   const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
+  const toHms = (ms) => {
+    if (!ms) return null;
+    const s = Math.floor(ms / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2, '0');
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const sec = String(s % 60).padStart(2, '0');
+    return `${h}:${m}:${sec}`;
+  };
 
   // Status e cálculos de tempo atuais
   const now = Date.now();
@@ -158,6 +166,8 @@ export async function handler(event) {
     tk.calledBr = format(tk.called);
     tk.attendedBr = format(tk.attended);
     tk.cancelledBr = format(tk.cancelled);
+    if (tk.wait) tk.waitHms = toHms(tk.wait);
+    if (tk.duration) tk.durationHms = toHms(tk.duration);
   });
 
   // Contabiliza quantidades de forma robusta combinando logs e sets
@@ -183,6 +193,8 @@ export async function handler(event) {
   const totalDur   = durValues.reduce((sum, v) => sum + v, 0);
   const avgWait    = waitValues.length ? Math.round(totalWait / waitValues.length) : 0;
   const avgDur     = durValues.length ? Math.round(totalDur / durValues.length) : 0;
+  const avgWaitHms = toHms(avgWait);
+  const avgDurHms  = toHms(avgDur);
 
   return {
     statusCode: 200,
@@ -196,6 +208,8 @@ export async function handler(event) {
         waitingCount,
         avgWait,
         avgDur,
+        avgWaitHms,
+        avgDurHms,
       },
     }),
   };
