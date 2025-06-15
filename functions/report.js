@@ -119,6 +119,7 @@ export async function handler(event) {
   const attendedCount  = attendedTickets.size;
   const cancelledCount = cancelledTickets.size;
   const missedCount    = missedTickets.size;
+  const waitingCount   = Math.max(0, ticketCounter - attendedCount - cancelledCount - missedCount);
   const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
   const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
   const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
@@ -135,6 +136,7 @@ export async function handler(event) {
         attendedCount,
         cancelledCount,
         missedCount,
+        waitingCount,
         avgWait,
         avgDur,
       },

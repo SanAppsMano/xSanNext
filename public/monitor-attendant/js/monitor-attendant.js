@@ -336,6 +336,7 @@ function startBouncingCompanyName(text) {
       attendedCount = 0,
       cancelledCount = 0,
       missedCount = 0,
+      waitingCount = 0,
       avgWait = 0,
       avgDur = 0
     } = summary;
@@ -344,7 +345,8 @@ function startBouncingCompanyName(text) {
         !totalTickets &&
         !attendedCount &&
         !cancelledCount &&
-        !missedCount) {
+        !missedCount &&
+        !waitingCount) {
       reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
     } else {
       reportSummary.innerHTML = `
@@ -353,7 +355,8 @@ function startBouncingCompanyName(text) {
         <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
         <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
         <p>Cancelados: ${cancelledCount}</p>
-        <p>Perderam a vez: ${missedCount}</p>`;
+        <p>Perderam a vez: ${missedCount}</p>
+        <p>Em espera: ${waitingCount}</p>`;
     }
 
     // Monta tabela
@@ -399,6 +402,7 @@ function startBouncingCompanyName(text) {
         ]));
       } else {
         rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '']);
+        rows.push(['', '', '', '', '', 'waiting:'+waitingCount, '', '']);
       }
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type:'text/csv' });
@@ -416,7 +420,8 @@ function startBouncingCompanyName(text) {
       doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 50);
       doc.text(`Cancelados: ${cancelledCount}`, 10, 60);
       doc.text(`Perderam a vez: ${missedCount}`, 10, 70);
-      if (tickets.length) doc.text('Detalhes em anexo', 10, 80);
+      doc.text(`Em espera: ${waitingCount}`, 10, 80);
+      if (tickets.length) doc.text('Detalhes em anexo', 10, 90);
       doc.save('relatorio.pdf');
     };
 
