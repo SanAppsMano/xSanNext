@@ -469,11 +469,12 @@ function startBouncingCompanyName(text) {
         `Tempo médio de espera: ${avgWaitHms}`,
         `Tempo médio de atendimento: ${avgDurHms}`
       ];
-      summaryLines.forEach(line => { doc.text(line, 14, y); y += 6; });
+      summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
       const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [12, 22, 25, 25, 25, 25, 20, 20];
-      const startX = 14;
+      const colW = [10, 20, 25, 25, 25, 25, 20, 20];
+      const startX = 20;
+      const rowH = 7;
       const drawRow = (vals, yPos, bold = false) => {
         let x = startX;
         if (bold) doc.setFont(undefined, 'bold'); else doc.setFont(undefined, 'normal');
@@ -483,12 +484,12 @@ function startBouncingCompanyName(text) {
         });
       };
 
-      drawRow(headers, y, true); y += 6;
+      drawRow(headers, y, true); y += rowH;
       tickets.forEach(tk => {
         if (y > 270) {
           doc.addPage();
           y = 20;
-          drawRow(headers, y, true); y += 6;
+          drawRow(headers, y, true); y += rowH;
         }
         drawRow([
           tk.ticket,
@@ -500,12 +501,12 @@ function startBouncingCompanyName(text) {
           tk.waitHms || msToHms(tk.wait) || '',
           tk.durationHms || msToHms(tk.duration) || ''
         ], y);
-        y += 6;
+        y += rowH;
       });
 
       doc.addPage();
       const img = reportChartEl.toDataURL('image/png');
-      doc.addImage(img, 'PNG', 15, 20, 180, 80);
+      doc.addImage(img, 'PNG', 20, 20, 170, 80);
 
       doc.save('relatorio.pdf');
     };
