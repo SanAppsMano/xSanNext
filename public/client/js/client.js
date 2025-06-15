@@ -28,7 +28,7 @@ const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 async function subscribePush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
   if (Notification.permission !== 'granted') {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return;
@@ -44,7 +44,7 @@ async function subscribePush() {
       localStorage.setItem('pushSub', JSON.stringify(sub));
     } catch (e) {
       console.error('push subscribe', e);
-      return;
+      return null;
     }
   }
   try {
@@ -55,6 +55,24 @@ async function subscribePush() {
     });
   } catch (e) {
     console.error('register push', e);
+  }
+  return sub;
+}
+
+async function sendWelcomePush(sub) {
+  if (!sub) return;
+  try {
+    await fetch('/.netlify/functions/sendPush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId,
+        subscription: sub,
+        message: 'Bem-vindo à fila! Mantenha esta tela aberta para ser chamado.'
+      })
+    });
+  } catch (e) {
+    console.error('welcome push', e);
   }
 }
 
@@ -115,7 +133,7 @@ window.addEventListener('beforeunload', function (e) {
   }
 });
 
-btnStart.addEventListener("click", () => {
+btnStart.addEventListener("click", async () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
@@ -126,7 +144,8 @@ btnStart.addEventListener("click", () => {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
-  subscribePush();
+  const sub = await subscribePush();
+  sendWelcomePush(sub);
   polling = setInterval(checkStatus, 2000);
 });
 
@@ -142,7 +161,6 @@ async function getTicket() {
   btnJoin.hidden = true;
   callStartTs = 0;
   lastEventTs = 0;
-  subscribePush();
 }
 
 async function checkStatus() {
@@ -262,10 +280,11 @@ btnCancel.addEventListener("click", async () => {
   handleExit("Você saiu da fila.");
 });
 
-btnJoin.addEventListener("click", () => {
+btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
   requestWakeLock();
   getTicket();
-  subscribePush();
+  const sub = await subscribePush();
+  sendWelcomePush(sub);
   polling = setInterval(checkStatus, 2000);
 });
