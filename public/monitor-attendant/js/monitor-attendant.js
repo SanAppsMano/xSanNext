@@ -411,41 +411,82 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-excel').onclick = () => {
-      const nowStr = new Date().toLocaleString('pt-BR');
-      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      let html = `<table><tr><th colspan="2">${cfg?.empresa || ''}</th></tr>` +
-                 `<tr><td>Gerado em</td><td>${nowStr}</td></tr></table>`;
-      html += '<table><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-      tickets.forEach(tk => {
-        html += '<tr>' + [
-          tk.ticket,
-          label(tk.status),
-          tk.enteredBr || fmt(tk.entered) || '',
-          tk.calledBr || fmt(tk.called) || '',
-          tk.attendedBr || fmt(tk.attended) || '',
-          tk.cancelledBr || fmt(tk.cancelled) || '',
-          tk.waitHms || msToHms(tk.wait) || '',
-          tk.durationHms || msToHms(tk.duration) || ''
-        ].map(v => `<td>${v}</td>`).join('') + '</tr>';
-      });
-      html += '</table>';
-      html += '<table>' +
-        `<tr><td>Total tickets</td><td>${totalTickets}</td></tr>` +
-        `<tr><td>Atendidos</td><td>${attendedCount}</td></tr>` +
-        `<tr><td>Cancelados</td><td>${cancelledCount}</td></tr>` +
-        `<tr><td>Perderam a vez</td><td>${missedCount}</td></tr>` +
-        `<tr><td>Em espera</td><td>${waitingCount}</td></tr>` +
-        `<tr><td>Tempo médio de espera</td><td>${avgWaitHms}</td></tr>` +
-        `<tr><td>Tempo médio de atendimento</td><td>${avgDurHms}</td></tr>` +
-        '</table>';
+      const encoder = new TextEncoder();
+      const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const col = (i) => String.fromCharCode(65 + i);
 
-      const blob = new Blob([`\uFEFF<html><head><meta charset="UTF-8"></head><body>${html}</body></html>`], {
-        type: 'application/vnd.ms-excel'
+      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const rows = [];
+      rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
+      tickets.forEach((tk,idx)=>{
+        const vals=[tk.ticket,label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const r=idx+2;
+        rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'relatorio.xls';
-      link.click();
+      let r = tickets.length + 3;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Total tickets</t></is></c><c t="inlineStr"><is><t>${totalTickets}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Atendidos</t></is></c><c t="inlineStr"><is><t>${attendedCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Cancelados</t></is></c><c t="inlineStr"><is><t>${cancelledCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Perderam a vez</t></is></c><c t="inlineStr"><is><t>${missedCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Em espera</t></is></c><c t="inlineStr"><is><t>${waitingCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Tempo médio de espera</t></is></c><c t="inlineStr"><is><t>${avgWaitHms}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Tempo médio de atendimento</t></is></c><c t="inlineStr"><is><t>${avgDurHms}</t></is></c></row>`);
+
+      const sheet = `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.join('')}</sheetData></worksheet>`;
+      const workbook = `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+      const wbRels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+      const rels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+      const types = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+
+      function crcTable(){
+        const c=[];for(let n=0;n<256;n++){let r=n;for(let k=0;k<8;k++)r=(r&1)?0xedb88320^(r>>>1):r>>>1;c[n]=r>>>0;}return c;
+      }
+      const crcTab = crcTable();
+      const crc32 = (arr)=>{
+        let crc=-1;for(let i=0;i<arr.length;i++)crc=crcTab[(crc^arr[i])&0xff]^(crc>>>8);return (crc^ -1)>>>0;
+      };
+      const toUint8 = (s)=>encoder.encode(s);
+      function hdr(name,data,off){
+        const nameBytes=toUint8(name);const h=new Uint8Array(30+nameBytes.length);
+        const crc=crc32(data);const size=data.length;
+        h.set([0x50,0x4b,0x03,0x04,20,0,0,0,0,0,0,0]);
+        h[14]=crc&0xff;h[15]=(crc>>>8)&0xff;h[16]=(crc>>>16)&0xff;h[17]=(crc>>>24)&0xff;
+        h[18]=size&0xff;h[19]=(size>>>8)&0xff;h[20]=(size>>>16)&0xff;h[21]=(size>>>24)&0xff;
+        h[22]=size&0xff;h[23]=(size>>>8)&0xff;h[24]=(size>>>16)&0xff;h[25]=(size>>>24)&0xff;
+        h[26]=nameBytes.length&0xff;h[27]=(nameBytes.length>>>8)&0xff;h.set(nameBytes,30);
+        return {header:h,crc,size,nameBytes,offset:off};
+      }
+      function central(f){
+        const c=new Uint8Array(46+f.nameBytes.length);
+        c.set([0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,0,0]);
+        const {crc,size,nameBytes,offset}=f;
+        c[16]=crc&0xff;c[17]=(crc>>>8)&0xff;c[18]=(crc>>>16)&0xff;c[19]=(crc>>>24)&0xff;
+        c[20]=size&0xff;c[21]=(size>>>8)&0xff;c[22]=(size>>>16)&0xff;c[23]=(size>>>24)&0xff;
+        c[24]=size&0xff;c[25]=(size>>>8)&0xff;c[26]=(size>>>16)&0xff;c[27]=(size>>>24)&0xff;
+        c[28]=nameBytes.length&0xff;c[29]=(nameBytes.length>>>8)&0xff;
+        c[42]=offset&0xff;c[43]=(offset>>>8)&0xff;c[44]=(offset>>>16)&0xff;c[45]=(offset>>>24)&0xff;
+        c.set(nameBytes,46);return c;
+      }
+      const files=[
+        {name:"[Content_Types].xml",data:toUint8(types)},
+        {name:"_rels/.rels",data:toUint8(rels)},
+        {name:"xl/workbook.xml",data:toUint8(workbook)},
+        {name:"xl/_rels/workbook.xml.rels",data:toUint8(wbRels)},
+        {name:"xl/worksheets/sheet1.xml",data:toUint8(sheet)}
+      ];
+      let localParts=[];let centralParts=[];let offset=0;
+      files.forEach(f=>{const lf=hdr(f.name,f.data,offset);offset+=lf.header.length+f.data.length;localParts.push(lf.header,f.data);centralParts.push(central(lf));});
+      let cdSize=centralParts.reduce((s,a)=>s+a.length,0);
+      const end=new Uint8Array(22);end.set([0x50,0x4b,0x05,0x06,0,0,0,0]);
+      end[8]=files.length&0xff;end[9]=(files.length>>>8)&0xff;end[10]=files.length&0xff;end[11]=(files.length>>>8)&0xff;
+      end[12]=cdSize&0xff;end[13]=(cdSize>>>8)&0xff;end[14]=(cdSize>>>16)&0xff;end[15]=(cdSize>>>24)&0xff;
+      end[16]=offset&0xff;end[17]=(offset>>>8)&0xff;end[18]=(offset>>>16)&0xff;end[19]=(offset>>>24)&0xff;
+      const totalLen=offset+cdSize+22;const out=new Uint8Array(totalLen);let p=0;
+      localParts.forEach(part=>{out.set(part,p);p+=part.length;});
+      centralParts.forEach(part=>{out.set(part,p);p+=part.length;});
+      out.set(end,p);
+      const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='relatorio.xlsx';link.click();
     };
 
     document.getElementById('export-pdf').onclick = () => {
