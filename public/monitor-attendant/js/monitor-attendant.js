@@ -410,17 +410,14 @@ function startBouncingCompanyName(text) {
     if (window.reportChart) window.reportChart.destroy();
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
-    document.getElementById('export-csv').onclick = () => {
+    document.getElementById('export-excel').onclick = () => {
       const nowStr = new Date().toLocaleString('pt-BR');
-      const header = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const rows = [
-        ['Empresa', cfg?.empresa || ''],
-        ['Gerado em', nowStr],
-        [],
-        header
-      ];
-      if (tickets.length) {
-        tickets.forEach(tk => rows.push([
+      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      let html = `<table><tr><th colspan="2">${cfg?.empresa || ''}</th></tr>` +
+                 `<tr><td>Gerado em</td><td>${nowStr}</td></tr></table>`;
+      html += '<table><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      tickets.forEach(tk => {
+        html += '<tr>' + [
           tk.ticket,
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
@@ -429,22 +426,25 @@ function startBouncingCompanyName(text) {
           tk.cancelledBr || fmt(tk.cancelled) || '',
           tk.waitHms || msToHms(tk.wait) || '',
           tk.durationHms || msToHms(tk.duration) || ''
-        ]));
-      }
-      rows.push([]);
-      rows.push(['Total tickets', totalTickets]);
-      rows.push(['Atendidos', attendedCount]);
-      rows.push(['Cancelados', cancelledCount]);
-      rows.push(['Perderam a vez', missedCount]);
-      rows.push(['Em espera', waitingCount]);
-      rows.push(['Tempo médio de espera', avgWaitHms]);
-      rows.push(['Tempo médio de atendimento', avgDurHms]);
+        ].map(v => `<td>${v}</td>`).join('') + '</tr>';
+      });
+      html += '</table>';
+      html += '<table>' +
+        `<tr><td>Total tickets</td><td>${totalTickets}</td></tr>` +
+        `<tr><td>Atendidos</td><td>${attendedCount}</td></tr>` +
+        `<tr><td>Cancelados</td><td>${cancelledCount}</td></tr>` +
+        `<tr><td>Perderam a vez</td><td>${missedCount}</td></tr>` +
+        `<tr><td>Em espera</td><td>${waitingCount}</td></tr>` +
+        `<tr><td>Tempo médio de espera</td><td>${avgWaitHms}</td></tr>` +
+        `<tr><td>Tempo médio de atendimento</td><td>${avgDurHms}</td></tr>` +
+        '</table>';
 
-      const csv = rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type:'text/csv' });
+      const blob = new Blob([`\uFEFF<html><head><meta charset="UTF-8"></head><body>${html}</body></html>`], {
+        type: 'application/vnd.ms-excel'
+      });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'relatorio.csv';
+      link.download = 'relatorio.xls';
       link.click();
     };
 
