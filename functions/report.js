@@ -96,15 +96,12 @@ export async function handler(event) {
     map[c.ticket] = {
       ...(map[c.ticket] || { ticket: c.ticket }),
       called: c.ts,
-      wait: c.wait,
     };
   });
   attended.forEach(a => {
     map[a.ticket] = {
       ...(map[a.ticket] || { ticket: a.ticket }),
       attended: a.ts,
-      wait: a.wait,
-      duration: a.duration,
     };
   });
   cancelled.forEach(c => {
@@ -112,8 +109,6 @@ export async function handler(event) {
       ...(map[c.ticket] || { ticket: c.ticket }),
       cancelled: c.ts,
       reason: c.reason,
-      wait: c.wait,
-      duration: c.duration,
     };
   });
 
@@ -130,7 +125,7 @@ export async function handler(event) {
   // Helper para exibir datas no formato brasileiro
   const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
 
-  // Status e ajustes de tempo atuais
+  // Status e cálculos de tempo atuais
   const now = Date.now();
   tickets.forEach(tk => {
     if (attendedNums.includes(tk.ticket)) {
@@ -141,15 +136,24 @@ export async function handler(event) {
       tk.status = "missed";
     } else if (tk.called) {
       tk.status = "called";
-      if (!tk.duration) {
-        tk.duration = now - tk.called;
-      }
     } else {
       tk.status = "waiting";
     }
-    if (!tk.wait && tk.entered && tk.status === "waiting") {
+
+    if (tk.called && tk.entered) {
+      tk.wait = tk.called - tk.entered;
+    } else if (tk.cancelled && tk.entered && !tk.called) {
+      tk.wait = tk.cancelled - tk.entered;
+    } else if (tk.status === "waiting" && tk.entered) {
       tk.wait = now - tk.entered;
     }
+
+    if (tk.attended && tk.called) {
+      tk.duration = tk.attended - tk.called;
+    } else if (tk.status === "called" && tk.called) {
+      tk.duration = now - tk.called;
+    }
+
     tk.enteredBr = format(tk.entered);
     tk.calledBr = format(tk.called);
     tk.attendedBr = format(tk.attended);
