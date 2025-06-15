@@ -322,7 +322,11 @@ function startBouncingCompanyName(text) {
       avgDur = 0
     } = summary;
 
-    if (!tickets.length) {
+    if (!tickets.length &&
+        !totalTickets &&
+        !attendedCount &&
+        !cancelledCount &&
+        !missedCount) {
       reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
     } else {
       reportSummary.innerHTML = `
@@ -363,18 +367,21 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
-      if (!tickets.length) return;
       const rows = [['ticket','entered','called','attended','cancelled','reason','wait_ms','duration_ms']];
-      tickets.forEach(tk => rows.push([
-        tk.ticket,
-        tk.entered || '',
-        tk.called || '',
-        tk.attended || '',
-        tk.cancelled || '',
-        tk.reason || '',
-        tk.wait || '',
-        tk.duration || ''
-      ]));
+      if (tickets.length) {
+        tickets.forEach(tk => rows.push([
+          tk.ticket,
+          tk.entered || '',
+          tk.called || '',
+          tk.attended || '',
+          tk.cancelled || '',
+          tk.reason || '',
+          tk.wait || '',
+          tk.duration || ''
+        ]));
+      } else {
+        rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '']);
+      }
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type:'text/csv' });
       const link = document.createElement('a');
@@ -382,7 +389,6 @@ function startBouncingCompanyName(text) {
     };
 
     document.getElementById('export-pdf').onclick = () => {
-      if (!tickets.length) return;
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.text('Relatório', 10, 10);
@@ -392,6 +398,7 @@ function startBouncingCompanyName(text) {
       doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 50);
       doc.text(`Cancelados: ${cancelledCount}`, 10, 60);
       doc.text(`Perderam a vez: ${missedCount}`, 10, 70);
+      if (tickets.length) doc.text('Detalhes em anexo', 10, 80);
       doc.save('relatorio.pdf');
     };
 

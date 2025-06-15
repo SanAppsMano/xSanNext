@@ -89,9 +89,12 @@ export async function handler(event) {
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
 
   // Contabiliza totals a partir dos logs caso os sets tenham sido zerados
-  const attendedCount  = attended.length;
-  const cancelledCount = cancelled.filter(c => c.reason !== "missed").length;
-  const missedCount    = cancelled.filter(c => c.reason === "missed").length;
+  // Fallback para sets caso os logs estejam vazios
+  const attendedCount  = attended.length || attendedNums.length;
+  const cancelledCount =
+    cancelled.filter(c => c.reason !== "missed").length || cancelledNums.length;
+  const missedCount    =
+    cancelled.filter(c => c.reason === "missed").length || missedNums.length;
   const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
   const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
   const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
