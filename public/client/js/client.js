@@ -78,6 +78,11 @@ window.addEventListener('beforeunload', function (e) {
   }
 });
 
+// ao voltar para a aba, tenta reativar o wake lock se ainda estiver com ticket
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && ticketNumber) requestWakeLock();
+});
+
 btnStart.addEventListener("click", () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
@@ -103,6 +108,8 @@ async function getTicket() {
   btnJoin.hidden = true;
   callStartTs = 0;
   lastEventTs = 0;
+  requestWakeLock();
+  sendWelcomeNotification();
 }
 
 async function checkStatus() {
@@ -194,6 +201,27 @@ async function sendNotification() {
     }
   } catch (e) {
     console.error('sendNotification', e);
+  }
+}
+
+async function sendWelcomeNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('sw.js');
+    const opts = {
+      body: 'Mantenha a tela ativa para receber o chamado.',
+      tag: 'sannext-welcome',
+      renotify: false
+    };
+    if (reg) {
+      const prior = await reg.getNotifications({ tag: 'sannext-welcome' });
+      prior.forEach(n => n.close());
+      reg.showNotification('Bem-vindo!', opts);
+    } else {
+      new Notification('Bem-vindo!', opts);
+    }
+  } catch (e) {
+    console.error('sendWelcome', e);
   }
 }
 
