@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { handler as sendPush } from "./sendPush.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
@@ -76,6 +77,15 @@ export async function handler(event) {
     prefix + "log:called",
     JSON.stringify({ ticket: next, attendant, ts, wait })
   );
+
+  try {
+    await sendPush({
+      httpMethod: 'POST',
+      body: JSON.stringify({ tenantId, message: `Ticket ${next}` })
+    });
+  } catch (err) {
+    console.error('sendPush error', err);
+  }
 
   return {
     statusCode: 200,

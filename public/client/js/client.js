@@ -27,6 +27,55 @@ const btnStart   = document.getElementById("btn-start");
 const overlay    = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
+async function subscribePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  if (Notification.permission !== 'granted') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    try {
+      const res = await fetch('/.netlify/functions/sendPush');
+      const { publicKey } = await res.json();
+      const uintKey = Uint8Array.from(atob(publicKey.replace(/_/g, '/').replace(/-/g, '+')), c => c.charCodeAt(0));
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: uintKey });
+      localStorage.setItem('pushSub', JSON.stringify(sub));
+    } catch (e) {
+      console.error('push subscribe', e);
+      return null;
+    }
+  }
+  try {
+    await fetch('/.netlify/functions/sendPush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId, subscription: sub })
+    });
+  } catch (e) {
+    console.error('register push', e);
+  }
+  return sub;
+}
+
+async function sendWelcomePush(sub) {
+  if (!sub) return;
+  try {
+    await fetch('/.netlify/functions/sendPush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId,
+        subscription: sub,
+        message: 'Bem-vindo à fila! Mantenha esta tela aberta para ser chamado.'
+      })
+    });
+  } catch (e) {
+    console.error('welcome push', e);
+  }
+}
+
 let clientId, ticketNumber;
 let polling, alertInterval;
 let lastEventTs = 0;
@@ -50,6 +99,12 @@ function releaseWakeLock() {
     wakeLock = null;
   }
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && ticketNumber) {
+    requestWakeLock();
+  }
+});
 
 function handleExit(msg) {
   clearInterval(polling);
@@ -78,16 +133,19 @@ window.addEventListener('beforeunload', function (e) {
   }
 });
 
-btnStart.addEventListener("click", () => {
+btnStart.addEventListener("click", async () => {
   // som/vibração de teste
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
   if ("Notification" in window) Notification.requestPermission();
   overlay.remove();
+  requestWakeLock();
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   getTicket();
+  const sub = await subscribePush();
+  sendWelcomePush(sub);
   polling = setInterval(checkStatus, 2000);
 });
 
@@ -222,8 +280,11 @@ btnCancel.addEventListener("click", async () => {
   handleExit("Você saiu da fila.");
 });
 
-btnJoin.addEventListener("click", () => {
+btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
+  requestWakeLock();
   getTicket();
+  const sub = await subscribePush();
+  sendWelcomePush(sub);
   polling = setInterval(checkStatus, 2000);
 });
