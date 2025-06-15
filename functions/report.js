@@ -37,10 +37,22 @@ export async function handler(event) {
   const attended  = attendedRaw.map((s) => JSON.parse(s));
   const cancelled = cancelledRaw.map((s) => JSON.parse(s));
 
-  const ticketCounter = Number(ticketCounterRaw || 0);
   const cancelledNums = cancelledSet.map((n) => Number(n));
   const missedNums    = missedSet.map((n) => Number(n));
   const attendedNums  = attendedSet.map((n) => Number(n));
+
+  // Determina o maior número de ticket considerando logs e sets
+  const maxFromLogs = Math.max(
+    0,
+    ...entered.map(e => e.ticket),
+    ...called.map(c => c.ticket),
+    ...attended.map(a => a.ticket),
+    ...cancelled.map(c => c.ticket),
+    ...cancelledNums,
+    ...missedNums,
+    ...attendedNums
+  );
+  const ticketCounter = Math.max(Number(ticketCounterRaw || 0), maxFromLogs);
 
   const map = {};
   for (let i = 1; i <= ticketCounter; i++) {
@@ -76,9 +88,10 @@ export async function handler(event) {
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
 
-  const attendedCount  = attendedNums.length;
-  const cancelledCount = cancelledNums.length;
-  const missedCount    = missedNums.length;
+  // Contabiliza totals a partir dos logs caso os sets tenham sido zerados
+  const attendedCount  = attended.length;
+  const cancelledCount = cancelled.filter(c => c.reason !== "missed").length;
+  const missedCount    = cancelled.filter(c => c.reason === "missed").length;
   const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
   const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
   const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);

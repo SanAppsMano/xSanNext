@@ -322,13 +322,17 @@ function startBouncingCompanyName(text) {
       avgDur = 0
     } = summary;
 
-    reportSummary.innerHTML = `
-      <p>Total de tickets: ${totalTickets}</p>
-      <p>Atendidos: ${attendedCount}</p>
-      <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
-      <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
-      <p>Cancelados: ${cancelledCount}</p>
-      <p>Perderam a vez: ${missedCount}</p>`;
+    if (!tickets.length) {
+      reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
+    } else {
+      reportSummary.innerHTML = `
+        <p>Total de tickets: ${totalTickets}</p>
+        <p>Atendidos: ${attendedCount}</p>
+        <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
+        <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
+        <p>Cancelados: ${cancelledCount}</p>
+        <p>Perderam a vez: ${missedCount}</p>`;
+    }
 
     // Monta tabela
     const table = document.getElementById('report-table');
@@ -351,7 +355,7 @@ function startBouncingCompanyName(text) {
     table.appendChild(tbody);
 
     const byHour = {};
-    tickets.forEach(c => { if(c.called){ const h = new Date(c.called).getHours(); byHour[h]=(byHour[h]||0)+1; }});
+    tickets.forEach(c => { if (c.called) { const h = new Date(c.called).getHours(); byHour[h] = (byHour[h] || 0) + 1; }});
     const labels = Object.keys(byHour).sort((a,b)=>a-b);
     const data = labels.map(h => byHour[h]);
     const ctx = reportChartEl.getContext('2d');
@@ -359,6 +363,7 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
+      if (!tickets.length) return;
       const rows = [['ticket','entered','called','attended','cancelled','reason','wait_ms','duration_ms']];
       tickets.forEach(tk => rows.push([
         tk.ticket,
@@ -377,6 +382,7 @@ function startBouncingCompanyName(text) {
     };
 
     document.getElementById('export-pdf').onclick = () => {
+      if (!tickets.length) return;
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.text('Relatório', 10, 10);
