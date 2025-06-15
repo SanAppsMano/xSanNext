@@ -38,10 +38,19 @@ export async function handler(event) {
     attendedSet,
   ] = data;
 
-  const entered   = enteredRaw.map((s) => JSON.parse(s));
-  const called    = calledRaw.map((s) => JSON.parse(s));
-  const attended  = attendedRaw.map((s) => JSON.parse(s));
-  const cancelled = cancelledRaw.map((s) => JSON.parse(s));
+  const safeParse = (val) => {
+    if (typeof val !== "string") return null;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return null;
+    }
+  };
+
+  const entered   = enteredRaw.map(safeParse).filter(Boolean);
+  const called    = calledRaw.map(safeParse).filter(Boolean);
+  const attended  = attendedRaw.map(safeParse).filter(Boolean);
+  const cancelled = cancelledRaw.map(safeParse).filter(Boolean);
 
   const cancelledNums = cancelledSet.map((n) => Number(n));
   const missedNums    = missedSet.map((n) => Number(n));
