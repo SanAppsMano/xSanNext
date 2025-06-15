@@ -376,10 +376,10 @@ function startBouncingCompanyName(text) {
       tr.innerHTML = `
         <td>${tk.ticket}</td>
         <td>${label(tk.status)}</td>
-        <td>${fmt(tk.entered)}</td>
-        <td>${fmt(tk.called)}</td>
-        <td>${fmt(tk.attended)}</td>
-        <td>${fmt(tk.cancelled)}</td>
+        <td>${tk.enteredBr || fmt(tk.entered)}</td>
+        <td>${tk.calledBr || fmt(tk.called)}</td>
+        <td>${tk.attendedBr || fmt(tk.attended)}</td>
+        <td>${tk.cancelledBr || fmt(tk.cancelled)}</td>
         <td>${tk.reason || ''}</td>
         <td>${tk.wait ? Math.round(tk.wait/1000) : '-'}</td>
         <td>${tk.duration ? Math.round(tk.duration/1000) : '-'}</td>`;
@@ -401,10 +401,10 @@ function startBouncingCompanyName(text) {
         tickets.forEach(tk => rows.push([
           tk.ticket,
           tk.status,
-          tk.entered || '',
-          tk.called || '',
-          tk.attended || '',
-          tk.cancelled || '',
+          tk.enteredBr || fmt(tk.entered) || '',
+          tk.calledBr || fmt(tk.called) || '',
+          tk.attendedBr || fmt(tk.attended) || '',
+          tk.cancelledBr || fmt(tk.cancelled) || '',
           tk.reason || '',
           tk.wait || '',
           tk.duration || ''

@@ -102,6 +102,8 @@ export async function handler(event) {
   });
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
+  // Helper para exibir datas no formato brasileiro
+  const format = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null;
 
   // Status e ajustes de tempo atuais
   const now = Date.now();
@@ -123,6 +125,10 @@ export async function handler(event) {
     if (!tk.wait && tk.entered && tk.status === "waiting") {
       tk.wait = now - tk.entered;
     }
+    tk.enteredBr = format(tk.entered);
+    tk.calledBr = format(tk.called);
+    tk.attendedBr = format(tk.attended);
+    tk.cancelledBr = format(tk.cancelled);
   });
 
   // Contabiliza quantidades de forma robusta combinando logs e sets
