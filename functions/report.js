@@ -88,13 +88,22 @@ export async function handler(event) {
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
 
-  // Contabiliza totals a partir dos logs caso os sets tenham sido zerados
-  // Fallback para sets caso os logs estejam vazios
-  const attendedCount  = attended.length || attendedNums.length;
-  const cancelledCount =
-    cancelled.filter(c => c.reason !== "missed").length || cancelledNums.length;
-  const missedCount    =
-    cancelled.filter(c => c.reason === "missed").length || missedNums.length;
+  // Contabiliza quantidades de forma robusta combinando logs e sets
+  const attendedTickets  = new Set([
+    ...attendedNums,
+    ...attended.map(a => a.ticket)
+  ]);
+  const cancelledTickets = new Set([
+    ...cancelledNums,
+    ...cancelled.filter(c => c.reason !== "missed").map(c => c.ticket)
+  ]);
+  const missedTickets    = new Set([
+    ...missedNums,
+    ...cancelled.filter(c => c.reason === "missed").map(c => c.ticket)
+  ]);
+  const attendedCount  = attendedTickets.size;
+  const cancelledCount = cancelledTickets.size;
+  const missedCount    = missedTickets.size;
   const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
   const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
   const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
