@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
-  const fmtTime     = ts => new Date(ts).toLocaleTimeString();
+  const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
@@ -334,7 +334,7 @@ function startBouncingCompanyName(text) {
     const table = document.getElementById('report-table');
     table.innerHTML = '<thead><tr><th>Ticket</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Motivo</th><th>Espera(s)</th><th>Duração(s)</th></tr></thead>';
     const tbody = document.createElement('tbody');
-    const fmt = ts => ts ? new Date(ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '-';
+    const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
     tickets.forEach(tk => {
       const tr = document.createElement('tr');
       tr.innerHTML = `

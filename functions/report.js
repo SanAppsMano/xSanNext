@@ -10,48 +10,88 @@ export async function handler(event) {
   const redis = Redis.fromEnv();
   const prefix = `tenant:${tenantId}:`;
 
-  const logs = await Promise.all([
+  const data = await Promise.all([
     redis.lrange(prefix + "log:entered", 0, -1),
     redis.lrange(prefix + "log:called", 0, -1),
     redis.lrange(prefix + "log:attended", 0, -1),
     redis.lrange(prefix + "log:cancelled", 0, -1),
+    redis.get(prefix + "ticketCounter"),
+    redis.smembers(prefix + "cancelledSet"),
+    redis.smembers(prefix + "missedSet"),
+    redis.smembers(prefix + "attendedSet"),
   ]);
 
-  const [enteredRaw, calledRaw, attendedRaw, cancelledRaw] = logs;
+  const [
+    enteredRaw,
+    calledRaw,
+    attendedRaw,
+    cancelledRaw,
+    ticketCounterRaw,
+    cancelledSet,
+    missedSet,
+    attendedSet,
+  ] = data;
 
-  const entered   = enteredRaw.map(s => JSON.parse(s));
-  const called    = calledRaw.map(s => JSON.parse(s));
-  const attended  = attendedRaw.map(s => JSON.parse(s));
-  const cancelled = cancelledRaw.map(s => JSON.parse(s));
+  const entered   = enteredRaw.map((s) => JSON.parse(s));
+  const called    = calledRaw.map((s) => JSON.parse(s));
+  const attended  = attendedRaw.map((s) => JSON.parse(s));
+  const cancelled = cancelledRaw.map((s) => JSON.parse(s));
+
+  const ticketCounter = Number(ticketCounterRaw || 0);
+  const cancelledNums = cancelledSet.map((n) => Number(n));
+  const missedNums    = missedSet.map((n) => Number(n));
+  const attendedNums  = attendedSet.map((n) => Number(n));
 
   const map = {};
-  entered.forEach(e => { map[e.ticket] = { ticket: e.ticket, entered: e.ts }; });
+  for (let i = 1; i <= ticketCounter; i++) {
+    map[i] = { ticket: i };
+  }
+  entered.forEach((e) => {
+    map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
+  });
   called.forEach(c => {
-    map[c.ticket] = { ...(map[c.ticket] || { ticket: c.ticket }), called: c.ts, wait: c.wait };
+    map[c.ticket] = {
+      ...(map[c.ticket] || { ticket: c.ticket }),
+      called: c.ts,
+      wait: c.wait,
+    };
   });
   attended.forEach(a => {
-    map[a.ticket] = { ...(map[a.ticket] || { ticket: a.ticket }), attended: a.ts, wait: a.wait, duration: a.duration };
+    map[a.ticket] = {
+      ...(map[a.ticket] || { ticket: a.ticket }),
+      attended: a.ts,
+      wait: a.wait,
+      duration: a.duration,
+    };
   });
   cancelled.forEach(c => {
-    map[c.ticket] = { ...(map[c.ticket] || { ticket: c.ticket }), cancelled: c.ts, reason: c.reason, wait: c.wait, duration: c.duration };
+    map[c.ticket] = {
+      ...(map[c.ticket] || { ticket: c.ticket }),
+      cancelled: c.ts,
+      reason: c.reason,
+      wait: c.wait,
+      duration: c.duration,
+    };
   });
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
 
-  const attendedCount  = tickets.filter(t => t.attended).length;
-  const cancelledCount = tickets.filter(t => t.cancelled && t.reason !== 'missed').length;
-  const missedCount    = tickets.filter(t => t.reason === 'missed').length;
-  const totalWait = tickets.reduce((sum, t) => sum + (t.wait || 0), 0);
-  const totalDur  = tickets.reduce((sum, t) => sum + (t.duration || 0), 0);
-  const avgWait   = attendedCount ? Math.round(totalWait / attendedCount) : 0;
-  const avgDur    = attendedCount ? Math.round(totalDur / attendedCount) : 0;
+  const attendedCount  = attendedNums.length;
+  const cancelledCount = cancelledNums.length;
+  const missedCount    = missedNums.length;
+  const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
+  const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
+  const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
+  const totalDur   = durValues.reduce((sum, v) => sum + v, 0);
+  const avgWait    = waitValues.length ? Math.round(totalWait / waitValues.length) : 0;
+  const avgDur     = durValues.length ? Math.round(totalDur / durValues.length) : 0;
 
   return {
     statusCode: 200,
     body: JSON.stringify({
       tickets,
       summary: {
-        totalTickets: tickets.length,
+        totalTickets: ticketCounter,
         attendedCount,
         cancelledCount,
         missedCount,
