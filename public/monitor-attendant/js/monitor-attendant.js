@@ -311,25 +311,47 @@ function startBouncingCompanyName(text) {
   async function openReport(t) {
     reportModal.hidden = false;
     const res = await fetch(`/.netlify/functions/report?t=${t}`);
-    const { entered = [], called = [], attended = [], cancelled = [] } = await res.json();
+    const { tickets = [], summary = {} } = await res.json();
 
-    const attendedCount = attended.length;
-    let totalWait = 0, totalDur = 0;
-    attended.forEach(a => { totalWait += a.wait || 0; totalDur += a.duration || 0; });
-    const avgWait = attendedCount ? Math.round(totalWait / attendedCount) : 0;
-    const avgDur  = attendedCount ? Math.round(totalDur / attendedCount) : 0;
-    const cancelledCount = cancelled.filter(c => c.reason !== 'missed').length;
-    const missedCount    = cancelled.filter(c => c.reason === 'missed').length;
+    const {
+      totalTickets = 0,
+      attendedCount = 0,
+      cancelledCount = 0,
+      missedCount = 0,
+      avgWait = 0,
+      avgDur = 0
+    } = summary;
 
     reportSummary.innerHTML = `
-      <p>Total de atendidos: ${attendedCount}</p>
+      <p>Total de tickets: ${totalTickets}</p>
+      <p>Atendidos: ${attendedCount}</p>
       <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
       <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
       <p>Cancelados: ${cancelledCount}</p>
       <p>Perderam a vez: ${missedCount}</p>`;
 
+    // Monta tabela
+    const table = document.getElementById('report-table');
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Motivo</th><th>Espera(s)</th><th>Duração(s)</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    const fmt = ts => ts ? new Date(ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '-';
+    tickets.forEach(tk => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${tk.ticket}</td>
+        <td>${fmt(tk.entered)}</td>
+        <td>${fmt(tk.called)}</td>
+        <td>${fmt(tk.attended)}</td>
+        <td>${fmt(tk.cancelled)}</td>
+        <td>${tk.reason || ''}</td>
+        <td>${tk.wait ? Math.round(tk.wait/1000) : '-'}</td>
+        <td>${tk.duration ? Math.round(tk.duration/1000) : '-'}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
     const byHour = {};
-    called.forEach(c => { const h = new Date(c.ts).getHours(); byHour[h] = (byHour[h]||0)+1; });
+    tickets.forEach(c => { if(c.called){ const h = new Date(c.called).getHours(); byHour[h]=(byHour[h]||0)+1; }});
     const labels = Object.keys(byHour).sort((a,b)=>a-b);
     const data = labels.map(h => byHour[h]);
     const ctx = reportChartEl.getContext('2d');
@@ -337,12 +359,17 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
-      const rows = [['ticket','called','attended','cancelled']];
-      const map = {};
-      called.forEach(c => { map[c.ticket] = { called: c.ts }; });
-      attended.forEach(a => { map[a.ticket] = { ...map[a.ticket], attended: a.ts }; });
-      cancelled.forEach(c => { map[c.ticket] = { ...map[c.ticket], cancelled: c.ts }; });
-      Object.entries(map).forEach(([k,v]) => { rows.push([k,v.called||'',v.attended||'',v.cancelled||'']); });
+      const rows = [['ticket','entered','called','attended','cancelled','reason','wait_ms','duration_ms']];
+      tickets.forEach(tk => rows.push([
+        tk.ticket,
+        tk.entered || '',
+        tk.called || '',
+        tk.attended || '',
+        tk.cancelled || '',
+        tk.reason || '',
+        tk.wait || '',
+        tk.duration || ''
+      ]));
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type:'text/csv' });
       const link = document.createElement('a');
@@ -353,11 +380,12 @@ function startBouncingCompanyName(text) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.text('Relatório', 10, 10);
-      doc.text(`Total de atendidos: ${attendedCount}`, 10, 20);
-      doc.text(`Tempo médio de espera: ${Math.round(avgWait/1000)}s`, 10, 30);
-      doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 40);
-      doc.text(`Cancelados: ${cancelledCount}`, 10, 50);
-      doc.text(`Perderam a vez: ${missedCount}`, 10, 60);
+      doc.text(`Total de tickets: ${totalTickets}`, 10, 20);
+      doc.text(`Atendidos: ${attendedCount}`, 10, 30);
+      doc.text(`Tempo médio de espera: ${Math.round(avgWait/1000)}s`, 10, 40);
+      doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 50);
+      doc.text(`Cancelados: ${cancelledCount}`, 10, 60);
+      doc.text(`Perderam a vez: ${missedCount}`, 10, 70);
       doc.save('relatorio.pdf');
     };
 
