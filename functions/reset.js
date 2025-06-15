@@ -28,6 +28,12 @@ export async function handler(event) {
   await redis.del(prefix + "log:reset");
   const keys = await redis.keys(prefix + "ticketTime:*");
   for (const k of keys) await redis.del(k);
+  const calledKeys = await redis.keys(prefix + "calledTime:*");
+  for (const k of calledKeys) await redis.del(k);
+  const attendedKeys = await redis.keys(prefix + "attendedTime:*");
+  for (const k of attendedKeys) await redis.del(k);
+  const cancelledKeys = await redis.keys(prefix + "cancelledTime:*");
+  for (const k of cancelledKeys) await redis.del(k);
   const waitKeys = await redis.keys(prefix + "wait:*");
   for (const w of waitKeys) await redis.del(w);
 

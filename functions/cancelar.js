@@ -38,6 +38,7 @@ export async function handler(event) {
     // Log de cancelamento
     // registro do cancelamento com timestamp
     const ts = Date.now();
+    await redis.set(prefix + `cancelledTime:${ticketNum}`, ts);
     await redis.lpush(
       prefix + "log:cancelled",
       JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })

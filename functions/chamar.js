@@ -72,6 +72,9 @@ export async function handler(event) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
 
+  // Armazena o timestamp da chamada para consulta posterior
+  await redis.set(prefix + `calledTime:${next}`, ts);
+
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",

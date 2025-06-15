@@ -73,6 +73,22 @@ export async function handler(event) {
   for (let i = 1; i <= ticketCounter; i++) {
     map[i] = { ticket: i };
   }
+
+  // Busca timestamps individuais como fallback quando não há logs
+  async function loadTimes(prefixKey) {
+    const result = {};
+    for (let i = 1; i <= ticketCounter; i++) {
+      const val = await redis.get(prefix + `${prefixKey}:${i}`);
+      if (val) result[i] = Number(val);
+    }
+    return result;
+  }
+  const [enteredTimes, calledTimes, attendedTimes, cancelledTimes] = await Promise.all([
+    loadTimes('ticketTime'),
+    loadTimes('calledTime'),
+    loadTimes('attendedTime'),
+    loadTimes('cancelledTime'),
+  ]);
   entered.forEach((e) => {
     map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
   });
@@ -100,6 +116,15 @@ export async function handler(event) {
       duration: c.duration,
     };
   });
+
+  // Preenche dados faltantes com valores individuais
+  for (let i = 1; i <= ticketCounter; i++) {
+    const tk = map[i];
+    if (!tk.entered && enteredTimes[i]) tk.entered = enteredTimes[i];
+    if (!tk.called && calledTimes[i]) tk.called = calledTimes[i];
+    if (!tk.attended && attendedTimes[i]) tk.attended = attendedTimes[i];
+    if (!tk.cancelled && cancelledTimes[i]) tk.cancelled = cancelledTimes[i];
+  }
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
   // Helper para exibir datas no formato brasileiro
