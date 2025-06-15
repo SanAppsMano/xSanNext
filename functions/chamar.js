@@ -49,9 +49,12 @@ export async function handler(event) {
       const dur = prevCallTs ? Date.now() - prevCallTs : 0;
       const waitPrev = Number(await redis.get(prefix + `wait:${prevCall}`) || 0);
       await redis.sadd(prefix + "missedSet", String(prevCall));
+      const missTs = Date.now();
+      // registra o momento em que o ticket perdeu a vez
+      await redis.set(prefix + `cancelledTime:${prevCall}`, missTs);
       await redis.lpush(
         prefix + "log:cancelled",
-        JSON.stringify({ ticket: prevCall, ts: Date.now(), reason: "missed", duration: dur, wait: waitPrev })
+        JSON.stringify({ ticket: prevCall, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
       );
       await redis.del(prefix + `wait:${prevCall}`);
     }
