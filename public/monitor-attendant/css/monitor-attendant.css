@@ -438,6 +438,38 @@ body {
   animation: ripple-effect 0.6s linear;
 }
 
+/* Modal de relatório */
+#report-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#report-modal[hidden] {
+  display: none !important;
+}
+#report-modal .modal-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#report-modal .close {
+  float: right;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+#report-chart {
+  max-width: 100%;
+}
+
 /* Animação de expansão e fade */
 @keyframes ripple-effect {
   to {

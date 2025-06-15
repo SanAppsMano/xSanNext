@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="css/monitor-attendant.css"/>
   <!-- Biblioteca de QR Code -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- jsPDF para exportação em PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
   <!-- Overlay de Onboarding -->
@@ -86,6 +90,7 @@
       </div>
 
       <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
+      <button id="btn-report" class="btn btn-secondary">Relatório</button>
     </section>
 
     <!-- Histórico de Cancelados -->
@@ -111,5 +116,19 @@
   </main>
 
   <script src="js/monitor-attendant.js"></script>
+
+  <!-- Modal de Relatório -->
+  <div id="report-modal" hidden>
+    <div class="modal-content">
+      <span id="report-close" class="close">&times;</span>
+      <h2>Relatório</h2>
+      <div id="report-summary"></div>
+      <canvas id="report-chart" width="400" height="200"></canvas>
+      <div class="report-actions">
+        <button id="export-csv" class="btn btn-secondary">Exportar CSV</button>
+        <button id="export-pdf" class="btn btn-secondary">Exportar PDF</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

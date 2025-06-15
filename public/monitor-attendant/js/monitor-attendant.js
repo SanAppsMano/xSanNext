@@ -85,6 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
   const btnReset       = document.getElementById('btn-reset');
+  const btnReport      = document.getElementById('btn-report');
+  const reportModal    = document.getElementById('report-modal');
+  const reportClose    = document.getElementById('report-close');
+  const reportSummary  = document.getElementById('report-summary');
+  const reportChartEl  = document.getElementById('report-chart');
 
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
@@ -303,6 +308,62 @@ function startBouncingCompanyName(text) {
     fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
   }
 
+  async function openReport(t) {
+    reportModal.hidden = false;
+    const res = await fetch(`/.netlify/functions/report?t=${t}`);
+    const { entered = [], called = [], attended = [], cancelled = [] } = await res.json();
+
+    const attendedCount = attended.length;
+    let totalWait = 0, totalDur = 0;
+    attended.forEach(a => { totalWait += a.wait || 0; totalDur += a.duration || 0; });
+    const avgWait = attendedCount ? Math.round(totalWait / attendedCount) : 0;
+    const avgDur  = attendedCount ? Math.round(totalDur / attendedCount) : 0;
+    const cancelledCount = cancelled.filter(c => c.reason !== 'missed').length;
+    const missedCount    = cancelled.filter(c => c.reason === 'missed').length;
+
+    reportSummary.innerHTML = `
+      <p>Total de atendidos: ${attendedCount}</p>
+      <p>Tempo médio de espera: ${Math.round(avgWait/1000)}s</p>
+      <p>Tempo médio de atendimento: ${Math.round(avgDur/1000)}s</p>
+      <p>Cancelados: ${cancelledCount}</p>
+      <p>Perderam a vez: ${missedCount}</p>`;
+
+    const byHour = {};
+    called.forEach(c => { const h = new Date(c.ts).getHours(); byHour[h] = (byHour[h]||0)+1; });
+    const labels = Object.keys(byHour).sort((a,b)=>a-b);
+    const data = labels.map(h => byHour[h]);
+    const ctx = reportChartEl.getContext('2d');
+    if (window.reportChart) window.reportChart.destroy();
+    window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
+
+    document.getElementById('export-csv').onclick = () => {
+      const rows = [['ticket','called','attended','cancelled']];
+      const map = {};
+      called.forEach(c => { map[c.ticket] = { called: c.ts }; });
+      attended.forEach(a => { map[a.ticket] = { ...map[a.ticket], attended: a.ts }; });
+      cancelled.forEach(c => { map[c.ticket] = { ...map[c.ticket], cancelled: c.ts }; });
+      Object.entries(map).forEach(([k,v]) => { rows.push([k,v.called||'',v.attended||'',v.cancelled||'']); });
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type:'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob); link.download = 'relatorio.csv'; link.click();
+    };
+
+    document.getElementById('export-pdf').onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text('Relatório', 10, 10);
+      doc.text(`Total de atendidos: ${attendedCount}`, 10, 20);
+      doc.text(`Tempo médio de espera: ${Math.round(avgWait/1000)}s`, 10, 30);
+      doc.text(`Tempo médio de atendimento: ${Math.round(avgDur/1000)}s`, 10, 40);
+      doc.text(`Cancelados: ${cancelledCount}`, 10, 50);
+      doc.text(`Perderam a vez: ${missedCount}`, 10, 60);
+      doc.save('relatorio.pdf');
+    };
+
+    reportClose.onclick = () => { reportModal.hidden = true; };
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     btnNext.onclick = async () => {
@@ -340,6 +401,7 @@ function startBouncingCompanyName(text) {
       updateCall(0, '');
       refreshAll(t);
     };
+    btnReport.onclick = () => openReport(t);
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
