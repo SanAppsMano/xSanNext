@@ -65,8 +65,7 @@ export async function handler(event) {
   const joinTs = await redis.get(prefix + `ticketTime:${next}`);
   if (joinTs) {
     wait = ts - Number(joinTs);
-    // remove o registro de entrada ao chamar o cliente
-    await redis.del(prefix + `ticketTime:${next}`);
+    // mantém ticketTime registrado para o relatório
   }
   await redis.set(prefix + `wait:${next}`, wait);
   await redis.set(prefix + "currentCall", next);
