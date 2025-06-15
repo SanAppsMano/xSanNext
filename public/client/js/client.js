@@ -82,6 +82,12 @@ function releaseWakeLock() {
   }
 }
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && ticketNumber) {
+    requestWakeLock();
+  }
+});
+
 function handleExit(msg) {
   clearInterval(polling);
   clearInterval(alertInterval);
@@ -115,6 +121,7 @@ btnStart.addEventListener("click", () => {
   if (navigator.vibrate) navigator.vibrate(1);
   if ("Notification" in window) Notification.requestPermission();
   overlay.remove();
+  requestWakeLock();
   btnJoin.hidden = true;
   btnCancel.hidden = false;
   btnCancel.disabled = false;
@@ -257,6 +264,7 @@ btnCancel.addEventListener("click", async () => {
 
 btnJoin.addEventListener("click", () => {
   btnJoin.disabled = true;
+  requestWakeLock();
   getTicket();
   subscribePush();
   polling = setInterval(checkStatus, 2000);
