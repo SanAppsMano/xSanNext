@@ -310,8 +310,26 @@ function startBouncingCompanyName(text) {
 
   async function openReport(t) {
     reportModal.hidden = false;
-    const res = await fetch(`/.netlify/functions/report?t=${t}`);
-    const { tickets = [], summary = {} } = await res.json();
+    reportSummary.innerHTML = '';
+    if (!t) {
+      reportSummary.innerHTML = '<p>Token inválido ou ausente.</p>';
+      return;
+    }
+    let tickets = [];
+    let summary = {};
+    try {
+      const res = await fetch(`/.netlify/functions/report?t=${t}`);
+      if (!res.ok) {
+        const text = await res.text();
+        reportSummary.innerHTML = `<p>Erro ao gerar relatório: ${text}</p>`;
+        return;
+      }
+      ({ tickets = [], summary = {} } = await res.json());
+    } catch (err) {
+      console.error('fetch report error', err);
+      reportSummary.innerHTML = '<p>Erro de conexão ao gerar relatório.</p>';
+      return;
+    }
 
     const {
       totalTickets = 0,
