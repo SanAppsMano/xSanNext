@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReport      = document.getElementById('btn-report');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
+  const reportTitle    = document.getElementById('report-title');
   const reportSummary  = document.getElementById('report-summary');
   const reportChartEl  = document.getElementById('report-chart');
 
@@ -318,6 +319,11 @@ function startBouncingCompanyName(text) {
 
   async function openReport(t) {
     reportModal.hidden = false;
+    if (cfg && cfg.empresa) {
+      reportTitle.textContent = `Relatório - ${cfg.empresa}`;
+    } else {
+      reportTitle.textContent = 'Relatório';
+    }
     reportSummary.innerHTML = '';
     if (!t) {
       reportSummary.innerHTML = '<p>Token inválido ou ausente.</p>';
@@ -405,11 +411,18 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
-      const rows = [['ticket','status','entered','called','attended','cancelled','wait_hms','duration_hms']];
+      const nowStr = new Date().toLocaleString('pt-BR');
+      const header = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const rows = [
+        ['Empresa', cfg?.empresa || ''],
+        ['Gerado em', nowStr],
+        [],
+        header
+      ];
       if (tickets.length) {
         tickets.forEach(tk => rows.push([
           tk.ticket,
-          tk.status,
+          label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',
           tk.attendedBr || fmt(tk.attended) || '',
@@ -417,28 +430,83 @@ function startBouncingCompanyName(text) {
           tk.waitHms || msToHms(tk.wait) || '',
           tk.durationHms || msToHms(tk.duration) || ''
         ]));
-      } else {
-        rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '']);
-        rows.push(['', '', '', '', '', 'waiting:'+waitingCount, '', '']);
       }
+      rows.push([]);
+      rows.push(['Total tickets', totalTickets]);
+      rows.push(['Atendidos', attendedCount]);
+      rows.push(['Cancelados', cancelledCount]);
+      rows.push(['Perderam a vez', missedCount]);
+      rows.push(['Em espera', waitingCount]);
+      rows.push(['Tempo médio de espera', avgWaitHms]);
+      rows.push(['Tempo médio de atendimento', avgDurHms]);
+
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type:'text/csv' });
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob); link.download = 'relatorio.csv'; link.click();
+      link.href = URL.createObjectURL(blob);
+      link.download = 'relatorio.csv';
+      link.click();
     };
 
     document.getElementById('export-pdf').onclick = () => {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text('Relatório', 10, 10);
-      doc.text(`Total de tickets: ${totalTickets}`, 10, 20);
-      doc.text(`Atendidos: ${attendedCount}`, 10, 30);
-      doc.text(`Tempo médio de espera: ${avgWaitHms}`, 10, 40);
-      doc.text(`Tempo médio de atendimento: ${avgDurHms}`, 10, 50);
-      doc.text(`Cancelados: ${cancelledCount}`, 10, 60);
-      doc.text(`Perderam a vez: ${missedCount}`, 10, 70);
-      doc.text(`Em espera: ${waitingCount}`, 10, 80);
-      if (tickets.length) doc.text('Detalhes em anexo', 10, 90);
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const nowStr = new Date().toLocaleString('pt-BR');
+
+      doc.setFontSize(16);
+      doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${nowStr}`, 105, 22, { align: 'center' });
+
+      let y = 30;
+      doc.setFontSize(12);
+      const summaryLines = [
+        `Total de tickets: ${totalTickets}`,
+        `Atendidos: ${attendedCount}`,
+        `Cancelados: ${cancelledCount}`,
+        `Perderam a vez: ${missedCount}`,
+        `Em espera: ${waitingCount}`,
+        `Tempo médio de espera: ${avgWaitHms}`,
+        `Tempo médio de atendimento: ${avgDurHms}`
+      ];
+      summaryLines.forEach(line => { doc.text(line, 14, y); y += 6; });
+
+      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [12, 22, 25, 25, 25, 25, 20, 20];
+      const startX = 14;
+      const drawRow = (vals, yPos, bold = false) => {
+        let x = startX;
+        if (bold) doc.setFont(undefined, 'bold'); else doc.setFont(undefined, 'normal');
+        vals.forEach((v, i) => {
+          doc.text(String(v ?? ''), x, yPos, { maxWidth: colW[i] - 1 });
+          x += colW[i];
+        });
+      };
+
+      drawRow(headers, y, true); y += 6;
+      tickets.forEach(tk => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+          drawRow(headers, y, true); y += 6;
+        }
+        drawRow([
+          tk.ticket,
+          label(tk.status),
+          tk.enteredBr || fmt(tk.entered) || '',
+          tk.calledBr || fmt(tk.called) || '',
+          tk.attendedBr || fmt(tk.attended) || '',
+          tk.cancelledBr || fmt(tk.cancelled) || '',
+          tk.waitHms || msToHms(tk.wait) || '',
+          tk.durationHms || msToHms(tk.duration) || ''
+        ], y);
+        y += 6;
+      });
+
+      doc.addPage();
+      const img = reportChartEl.toDataURL('image/png');
+      doc.addImage(img, 'PNG', 15, 20, 180, 80);
+
       doc.save('relatorio.pdf');
     };
 
