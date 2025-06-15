@@ -450,7 +450,7 @@ function startBouncingCompanyName(text) {
 
     document.getElementById('export-pdf').onclick = () => {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('p', 'mm', 'a4');
+      const doc = new jsPDF('l', 'mm', 'a4');
       const nowStr = new Date().toLocaleString('pt-BR');
 
       doc.setFontSize(16);
@@ -472,22 +472,22 @@ function startBouncingCompanyName(text) {
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
       const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [10, 20, 25, 25, 25, 25, 20, 20];
+      const colW = [15, 30, 35, 35, 35, 35, 25, 25];
       const startX = 20;
-      const rowH = 7;
+      const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
         let x = startX;
         if (bold) doc.setFont(undefined, 'bold'); else doc.setFont(undefined, 'normal');
         vals.forEach((v, i) => {
-          doc.text(String(v ?? ''), x, yPos, { maxWidth: colW[i] - 1 });
+          doc.text(String(v ?? ''), x + colW[i] / 2, yPos, { maxWidth: colW[i] - 1, align: 'center' });
           x += colW[i];
         });
       };
 
       drawRow(headers, y, true); y += rowH;
       tickets.forEach(tk => {
-        if (y > 270) {
-          doc.addPage();
+        if (y > 190) {
+          doc.addPage('l');
           y = 20;
           drawRow(headers, y, true); y += rowH;
         }
@@ -504,7 +504,7 @@ function startBouncingCompanyName(text) {
         y += rowH;
       });
 
-      doc.addPage();
+      doc.addPage('l');
       const img = reportChartEl.toDataURL('image/png');
       doc.addImage(img, 'PNG', 20, 20, 170, 80);
 
