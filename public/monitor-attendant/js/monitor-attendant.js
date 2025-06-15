@@ -361,13 +361,21 @@ function startBouncingCompanyName(text) {
 
     // Monta tabela
     const table = document.getElementById('report-table');
-    table.innerHTML = '<thead><tr><th>Ticket</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Motivo</th><th>Espera(s)</th><th>Duração(s)</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Motivo</th><th>Espera(s)</th><th>Duração(s)</th></tr></thead>';
     const tbody = document.createElement('tbody');
     const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
+    const label = (st) => ({
+      attended: 'Atendido',
+      cancelled: 'Cancelado',
+      missed: 'Perdeu a vez',
+      called: 'Chamado',
+      waiting: 'Em espera'
+    })[st] || '';
     tickets.forEach(tk => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${tk.ticket}</td>
+        <td>${label(tk.status)}</td>
         <td>${fmt(tk.entered)}</td>
         <td>${fmt(tk.called)}</td>
         <td>${fmt(tk.attended)}</td>
@@ -388,10 +396,11 @@ function startBouncingCompanyName(text) {
     window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
 
     document.getElementById('export-csv').onclick = () => {
-      const rows = [['ticket','entered','called','attended','cancelled','reason','wait_ms','duration_ms']];
+      const rows = [['ticket','status','entered','called','attended','cancelled','reason','wait_ms','duration_ms']];
       if (tickets.length) {
         tickets.forEach(tk => rows.push([
           tk.ticket,
+          tk.status,
           tk.entered || '',
           tk.called || '',
           tk.attended || '',
@@ -401,8 +410,8 @@ function startBouncingCompanyName(text) {
           tk.duration || ''
         ]));
       } else {
-        rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '']);
-        rows.push(['', '', '', '', '', 'waiting:'+waitingCount, '', '']);
+        rows.push(['', '', '', attendedCount, cancelledCount, 'missed:'+missedCount, '', '', '']);
+        rows.push(['', '', '', '', '', 'waiting:'+waitingCount, '', '', '']);
       }
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type:'text/csv' });

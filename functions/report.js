@@ -103,6 +103,28 @@ export async function handler(event) {
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
 
+  // Status e ajustes de tempo atuais
+  const now = Date.now();
+  tickets.forEach(tk => {
+    if (attendedNums.includes(tk.ticket)) {
+      tk.status = "attended";
+    } else if (cancelledNums.includes(tk.ticket) && tk.reason !== "missed") {
+      tk.status = "cancelled";
+    } else if (missedNums.includes(tk.ticket) || tk.reason === "missed") {
+      tk.status = "missed";
+    } else if (tk.called) {
+      tk.status = "called";
+      if (!tk.duration) {
+        tk.duration = now - tk.called;
+      }
+    } else {
+      tk.status = "waiting";
+    }
+    if (!tk.wait && tk.entered && tk.status === "waiting") {
+      tk.wait = now - tk.entered;
+    }
+  });
+
   // Contabiliza quantidades de forma robusta combinando logs e sets
   const attendedTickets  = new Set([
     ...attendedNums,
@@ -119,7 +141,7 @@ export async function handler(event) {
   const attendedCount  = attendedTickets.size;
   const cancelledCount = cancelledTickets.size;
   const missedCount    = missedTickets.size;
-  const waitingCount   = Math.max(0, ticketCounter - attendedCount - cancelledCount - missedCount);
+  const waitingCount   = tickets.filter(t => t.status === "waiting").length;
   const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
   const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
   const totalWait  = waitValues.reduce((sum, v) => sum + v, 0);
