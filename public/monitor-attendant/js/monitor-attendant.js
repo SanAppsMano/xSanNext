@@ -412,7 +412,7 @@ function startBouncingCompanyName(text) {
 
     document.getElementById('export-excel').onclick = () => {
       const encoder = new TextEncoder();
-      const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const col = (i) => String.fromCharCode(65 + i);
 
       const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
