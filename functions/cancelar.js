@@ -20,8 +20,8 @@ export async function handler(event) {
     const joinTs = await redis.get(prefix + `ticketTime:${ticketNum}`);
     if (joinTs) {
       wait = Date.now() - Number(joinTs);
+      // mantém ticketTime para referência futura
     }
-    await redis.del(prefix + `ticketTime:${ticketNum}`);
   }
 
   const attended = ticketNum
@@ -36,7 +36,9 @@ export async function handler(event) {
       await redis.sadd(prefix + "cancelledSet", String(ticketNum));
     }
     // Log de cancelamento
+    // registro do cancelamento com timestamp
     const ts = Date.now();
+    await redis.set(prefix + `cancelledTime:${ticketNum}`, ts);
     await redis.lpush(
       prefix + "log:cancelled",
       JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })

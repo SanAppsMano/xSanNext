@@ -49,9 +49,12 @@ export async function handler(event) {
       const dur = prevCallTs ? Date.now() - prevCallTs : 0;
       const waitPrev = Number(await redis.get(prefix + `wait:${prevCall}`) || 0);
       await redis.sadd(prefix + "missedSet", String(prevCall));
+      const missTs = Date.now();
+      // registra o momento em que o ticket perdeu a vez
+      await redis.set(prefix + `cancelledTime:${prevCall}`, missTs);
       await redis.lpush(
         prefix + "log:cancelled",
-        JSON.stringify({ ticket: prevCall, ts: Date.now(), reason: "missed", duration: dur, wait: waitPrev })
+        JSON.stringify({ ticket: prevCall, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
       );
       await redis.del(prefix + `wait:${prevCall}`);
     }
@@ -62,7 +65,7 @@ export async function handler(event) {
   const joinTs = await redis.get(prefix + `ticketTime:${next}`);
   if (joinTs) {
     wait = ts - Number(joinTs);
-    await redis.del(prefix + `ticketTime:${next}`);
+    // mantém ticketTime registrado para o relatório
   }
   await redis.set(prefix + `wait:${next}`, wait);
   await redis.set(prefix + "currentCall", next);
@@ -70,6 +73,9 @@ export async function handler(event) {
   if (attendant) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
+
+  // Armazena o timestamp da chamada para consulta posterior
+  await redis.set(prefix + `calledTime:${next}`, ts);
 
   // Log de chamada
   await redis.lpush(

@@ -41,7 +41,9 @@ export async function handler(event) {
   await redis.set(prefix + "currentCallTs", 0);
   await redis.del(prefix + "currentAttendant");
 
+  // registra a finalização do atendimento
   const ts = Date.now();
+  await redis.set(prefix + `attendedTime:${ticket}`, ts);
   await redis.lpush(
     prefix + "log:attended",
     JSON.stringify({ ticket: Number(ticket), ts, duration, wait })

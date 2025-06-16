@@ -85,6 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
   const btnReset       = document.getElementById('btn-reset');
+  const btnReport      = document.getElementById('btn-report');
+  const reportModal    = document.getElementById('report-modal');
+  const reportClose    = document.getElementById('report-close');
+  const reportTitle    = document.getElementById('report-title');
+  const reportSummary  = document.getElementById('report-summary');
+  const reportChartEl  = document.getElementById('report-chart');
 
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
@@ -113,7 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
-  const fmtTime     = ts => new Date(ts).toLocaleTimeString();
+  const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
+  const msToHms = (ms) => {
+    if (!ms) return '-';
+    const s = Math.floor(ms / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2,'0');
+    const m = String(Math.floor((s % 3600)/60)).padStart(2,'0');
+    const sec = String(s % 60).padStart(2,'0');
+    return `${h}:${m}:${sec}`;
+  };
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
@@ -259,8 +273,8 @@ function startBouncingCompanyName(text) {
       cancelListEl.innerHTML = '';
       cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
         const li = document.createElement('li');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
       });
@@ -269,8 +283,8 @@ function startBouncingCompanyName(text) {
       missed.forEach(({ ticket, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('missed');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         missedListEl.appendChild(li);
       });
@@ -289,8 +303,8 @@ function startBouncingCompanyName(text) {
       attended.forEach(({ ticket, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('attended');
-        const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
-        const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
+        const durTxt = duration ? ` (${msToHms(duration)})` : '';
+        const waitTxt = wait ? ` [${msToHms(wait)}]` : '';
         li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         attendedListEl.appendChild(li);
       });
@@ -301,6 +315,244 @@ function startBouncingCompanyName(text) {
 
   function refreshAll(t) {
     fetchStatus(t).then(() => { fetchCancelled(t); fetchAttended(t); });
+  }
+
+  async function openReport(t) {
+    reportModal.hidden = false;
+    if (cfg && cfg.empresa) {
+      reportTitle.textContent = `Relatório - ${cfg.empresa}`;
+    } else {
+      reportTitle.textContent = 'Relatório';
+    }
+    reportSummary.innerHTML = '';
+    if (!t) {
+      reportSummary.innerHTML = '<p>Token inválido ou ausente.</p>';
+      return;
+    }
+    let tickets = [];
+    let summary = {};
+    try {
+      const res = await fetch(`/.netlify/functions/report?t=${t}`);
+      if (!res.ok) {
+        const text = await res.text();
+        reportSummary.innerHTML = `<p>Erro ao gerar relatório: ${text}</p>`;
+        return;
+      }
+      ({ tickets = [], summary = {} } = await res.json());
+    } catch (err) {
+      console.error('fetch report error', err);
+      reportSummary.innerHTML = '<p>Erro de conexão ao gerar relatório.</p>';
+      return;
+    }
+
+    const {
+      totalTickets = 0,
+      attendedCount = 0,
+      cancelledCount = 0,
+      missedCount = 0,
+      waitingCount = 0,
+      avgWait = 0,
+      avgDur = 0,
+      avgWaitHms = '00:00:00',
+      avgDurHms = '00:00:00'
+    } = summary;
+
+    if (!tickets.length &&
+        !totalTickets &&
+        !attendedCount &&
+        !cancelledCount &&
+        !missedCount &&
+        !waitingCount) {
+      reportSummary.innerHTML = '<p>Nenhum dado encontrado.</p>';
+    } else {
+      reportSummary.innerHTML = `
+        <p>Total de tickets: ${totalTickets}</p>
+        <p>Atendidos: ${attendedCount}</p>
+        <p>Tempo médio de espera: ${avgWaitHms}</p>
+        <p>Tempo médio de atendimento: ${avgDurHms}</p>
+        <p>Cancelados: ${cancelledCount}</p>
+        <p>Perderam a vez: ${missedCount}</p>
+        <p>Em espera: ${waitingCount}</p>`;
+    }
+
+    // Monta tabela
+    const table = document.getElementById('report-table');
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
+    const label = (st) => ({
+      attended: 'Atendido',
+      cancelled: 'Cancelado',
+      missed: 'Perdeu a vez',
+      called: 'Chamado',
+      waiting: 'Em espera'
+    })[st] || '';
+    tickets.forEach(tk => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${tk.ticket}</td>
+        <td>${label(tk.status)}</td>
+        <td>${tk.enteredBr || fmt(tk.entered)}</td>
+        <td>${tk.calledBr || fmt(tk.called)}</td>
+        <td>${tk.attendedBr || fmt(tk.attended)}</td>
+        <td>${tk.cancelledBr || fmt(tk.cancelled)}</td>
+        <td>${tk.waitHms || msToHms(tk.wait)}</td>
+        <td>${tk.durationHms || msToHms(tk.duration)}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    const byHour = {};
+    tickets.forEach(c => { if (c.called) { const h = new Date(c.called).getHours(); byHour[h] = (byHour[h] || 0) + 1; }});
+    const labels = Object.keys(byHour).sort((a,b)=>a-b);
+    const data = labels.map(h => byHour[h]);
+    const ctx = reportChartEl.getContext('2d');
+    if (window.reportChart) window.reportChart.destroy();
+    window.reportChart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Chamadas/hora', data, backgroundColor:'#0077cc'}] } });
+
+    document.getElementById('export-excel').onclick = () => {
+      const encoder = new TextEncoder();
+      const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const col = (i) => String.fromCharCode(65 + i);
+
+      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const rows = [];
+      rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
+      tickets.forEach((tk,idx)=>{
+        const vals=[tk.ticket,label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const r=idx+2;
+        rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
+      });
+      let r = tickets.length + 3;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Total tickets</t></is></c><c t="inlineStr"><is><t>${totalTickets}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Atendidos</t></is></c><c t="inlineStr"><is><t>${attendedCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Cancelados</t></is></c><c t="inlineStr"><is><t>${cancelledCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Perderam a vez</t></is></c><c t="inlineStr"><is><t>${missedCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Em espera</t></is></c><c t="inlineStr"><is><t>${waitingCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Tempo médio de espera</t></is></c><c t="inlineStr"><is><t>${avgWaitHms}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Tempo médio de atendimento</t></is></c><c t="inlineStr"><is><t>${avgDurHms}</t></is></c></row>`);
+
+      const sheet = `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.join('')}</sheetData></worksheet>`;
+      const workbook = `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+      const wbRels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+      const rels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+      const types = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+
+      function crcTable(){
+        const c=[];for(let n=0;n<256;n++){let r=n;for(let k=0;k<8;k++)r=(r&1)?0xedb88320^(r>>>1):r>>>1;c[n]=r>>>0;}return c;
+      }
+      const crcTab = crcTable();
+      const crc32 = (arr)=>{
+        let crc=-1;for(let i=0;i<arr.length;i++)crc=crcTab[(crc^arr[i])&0xff]^(crc>>>8);return (crc^ -1)>>>0;
+      };
+      const toUint8 = (s)=>encoder.encode(s);
+      function hdr(name,data,off){
+        const nameBytes=toUint8(name);const h=new Uint8Array(30+nameBytes.length);
+        const crc=crc32(data);const size=data.length;
+        h.set([0x50,0x4b,0x03,0x04,20,0,0,0,0,0,0,0]);
+        h[14]=crc&0xff;h[15]=(crc>>>8)&0xff;h[16]=(crc>>>16)&0xff;h[17]=(crc>>>24)&0xff;
+        h[18]=size&0xff;h[19]=(size>>>8)&0xff;h[20]=(size>>>16)&0xff;h[21]=(size>>>24)&0xff;
+        h[22]=size&0xff;h[23]=(size>>>8)&0xff;h[24]=(size>>>16)&0xff;h[25]=(size>>>24)&0xff;
+        h[26]=nameBytes.length&0xff;h[27]=(nameBytes.length>>>8)&0xff;h.set(nameBytes,30);
+        return {header:h,crc,size,nameBytes,offset:off};
+      }
+      function central(f){
+        const c=new Uint8Array(46+f.nameBytes.length);
+        c.set([0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,0,0]);
+        const {crc,size,nameBytes,offset}=f;
+        c[16]=crc&0xff;c[17]=(crc>>>8)&0xff;c[18]=(crc>>>16)&0xff;c[19]=(crc>>>24)&0xff;
+        c[20]=size&0xff;c[21]=(size>>>8)&0xff;c[22]=(size>>>16)&0xff;c[23]=(size>>>24)&0xff;
+        c[24]=size&0xff;c[25]=(size>>>8)&0xff;c[26]=(size>>>16)&0xff;c[27]=(size>>>24)&0xff;
+        c[28]=nameBytes.length&0xff;c[29]=(nameBytes.length>>>8)&0xff;
+        c[42]=offset&0xff;c[43]=(offset>>>8)&0xff;c[44]=(offset>>>16)&0xff;c[45]=(offset>>>24)&0xff;
+        c.set(nameBytes,46);return c;
+      }
+      const files=[
+        {name:"[Content_Types].xml",data:toUint8(types)},
+        {name:"_rels/.rels",data:toUint8(rels)},
+        {name:"xl/workbook.xml",data:toUint8(workbook)},
+        {name:"xl/_rels/workbook.xml.rels",data:toUint8(wbRels)},
+        {name:"xl/worksheets/sheet1.xml",data:toUint8(sheet)}
+      ];
+      let localParts=[];let centralParts=[];let offset=0;
+      files.forEach(f=>{const lf=hdr(f.name,f.data,offset);offset+=lf.header.length+f.data.length;localParts.push(lf.header,f.data);centralParts.push(central(lf));});
+      let cdSize=centralParts.reduce((s,a)=>s+a.length,0);
+      const end=new Uint8Array(22);end.set([0x50,0x4b,0x05,0x06,0,0,0,0]);
+      end[8]=files.length&0xff;end[9]=(files.length>>>8)&0xff;end[10]=files.length&0xff;end[11]=(files.length>>>8)&0xff;
+      end[12]=cdSize&0xff;end[13]=(cdSize>>>8)&0xff;end[14]=(cdSize>>>16)&0xff;end[15]=(cdSize>>>24)&0xff;
+      end[16]=offset&0xff;end[17]=(offset>>>8)&0xff;end[18]=(offset>>>16)&0xff;end[19]=(offset>>>24)&0xff;
+      const totalLen=offset+cdSize+22;const out=new Uint8Array(totalLen);let p=0;
+      localParts.forEach(part=>{out.set(part,p);p+=part.length;});
+      centralParts.forEach(part=>{out.set(part,p);p+=part.length;});
+      out.set(end,p);
+      const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='relatorio.xlsx';link.click();
+    };
+
+    document.getElementById('export-pdf').onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'mm', 'a4');
+      const nowStr = new Date().toLocaleString('pt-BR');
+
+      doc.setFontSize(16);
+      doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${nowStr}`, 105, 22, { align: 'center' });
+
+      let y = 30;
+      doc.setFontSize(12);
+      const summaryLines = [
+        `Total de tickets: ${totalTickets}`,
+        `Atendidos: ${attendedCount}`,
+        `Cancelados: ${cancelledCount}`,
+        `Perderam a vez: ${missedCount}`,
+        `Em espera: ${waitingCount}`,
+        `Tempo médio de espera: ${avgWaitHms}`,
+        `Tempo médio de atendimento: ${avgDurHms}`
+      ];
+      summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
+
+      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [15, 30, 35, 35, 35, 35, 25, 25];
+      const startX = 20;
+      const rowH = 9;
+      const drawRow = (vals, yPos, bold = false) => {
+        let x = startX;
+        if (bold) doc.setFont(undefined, 'bold'); else doc.setFont(undefined, 'normal');
+        vals.forEach((v, i) => {
+          doc.text(String(v ?? ''), x + colW[i] / 2, yPos, { maxWidth: colW[i] - 1, align: 'center' });
+          x += colW[i];
+        });
+      };
+
+      drawRow(headers, y, true); y += rowH;
+      tickets.forEach(tk => {
+        if (y > 190) {
+          doc.addPage('l');
+          y = 20;
+          drawRow(headers, y, true); y += rowH;
+        }
+        drawRow([
+          tk.ticket,
+          label(tk.status),
+          tk.enteredBr || fmt(tk.entered) || '',
+          tk.calledBr || fmt(tk.called) || '',
+          tk.attendedBr || fmt(tk.attended) || '',
+          tk.cancelledBr || fmt(tk.cancelled) || '',
+          tk.waitHms || msToHms(tk.wait) || '',
+          tk.durationHms || msToHms(tk.duration) || ''
+        ], y);
+        y += rowH;
+      });
+
+      doc.addPage('l');
+      const img = reportChartEl.toDataURL('image/png');
+      doc.addImage(img, 'PNG', 20, 20, 170, 80);
+
+      doc.save('relatorio.pdf');
+    };
+
+    reportClose.onclick = () => { reportModal.hidden = true; };
   }
 
   /** Inicializa botões e polling */
@@ -340,6 +592,7 @@ function startBouncingCompanyName(text) {
       updateCall(0, '');
       refreshAll(t);
     };
+    btnReport.onclick = () => openReport(t);
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
