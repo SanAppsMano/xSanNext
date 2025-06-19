@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelledList = document.getElementById('cancelled-list');
   const missedList    = document.getElementById('missed-list');
   const attendedList  = document.getElementById('attended-list');
+  const btnCsv        = document.getElementById('btn-csv');
+  const btnBack       = document.getElementById('btn-back');
   const fmt = ts => new Date(ts).toLocaleTimeString();
 
   function itemText(ticket, name) {
@@ -17,14 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function load() {
     try {
-      const [enRes, caRes, atRes] = await Promise.all([
-        fetch(`/.netlify/functions/entradas?t=${token}`),
-        fetch(`/.netlify/functions/cancelados?t=${token}`),
-        fetch(`/.netlify/functions/atendidos?t=${token}`)
-      ]);
-      const { entered = [] } = await enRes.json();
-      const { cancelled = [], missed = [] } = await caRes.json();
-      const { attended = [] } = await atRes.json();
+      const res = await fetch(`/.netlify/functions/report?t=${token}`);
+      const { entered = [], cancelled = [], missed = [], attended = [] } = await res.json();
 
       enteredList.innerHTML = '';
       entered.forEach(({ ticket, name = '', ts }) => {
@@ -65,6 +61,46 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erro ao gerar relatório:', e);
     }
   }
+
+  function toCsv(data) {
+    const rows = [
+      ['tipo','ticket','nome','timestamp','duracao','espera','motivo']
+    ];
+    data.entered.forEach(r => {
+      rows.push(['entrada', r.ticket, r.name || '', new Date(r.ts).toISOString(), '', '', '']);
+    });
+    data.cancelled.forEach(r => {
+      rows.push(['cancelado', r.ticket, r.name || '', new Date(r.ts).toISOString(), r.duration||'', r.wait||'', r.reason]);
+    });
+    data.missed.forEach(r => {
+      rows.push(['perdeu', r.ticket, r.name || '', new Date(r.ts).toISOString(), r.duration||'', r.wait||'', 'missed']);
+    });
+    data.attended.forEach(r => {
+      rows.push(['atendido', r.ticket, r.name || '', new Date(r.ts).toISOString(), r.duration||'', r.wait||'', '']);
+    });
+    return rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  }
+
+  btnCsv.onclick = async () => {
+    try {
+      const res = await fetch(`/.netlify/functions/report?t=${token}`);
+      const data = await res.json();
+      const csv = toCsv(data);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'relatorio.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      console.error('csv error', e);
+    }
+  };
+
+  btnBack.onclick = () => history.back();
 
   load();
 });

@@ -7,7 +7,13 @@
   <link rel="stylesheet" href="css/monitor-attendant.css"/>
 </head>
 <body>
-  <h1>Relatório</h1>
+  <header class="header">
+    <h1>Relatório</h1>
+    <div class="actions">
+      <button id="btn-back" class="btn btn-secondary">Voltar</button>
+      <button id="btn-csv" class="btn btn-primary">Baixar CSV</button>
+    </div>
+  </header>
   <section class="history-panel">
     <h2>Entradas</h2>
     <ul id="entered-list" class="list"></ul>
