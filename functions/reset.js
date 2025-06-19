@@ -21,6 +21,7 @@ export async function handler(event) {
   await redis.del(prefix + "cancelledSet");
   await redis.del(prefix + "missedSet");
   await redis.del(prefix + "attendedSet");
+  await redis.del(prefix + "ticketNames");
   await redis.del(prefix + "log:entered");
   await redis.del(prefix + "log:called");
   await redis.del(prefix + "log:attended");

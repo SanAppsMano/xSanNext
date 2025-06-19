@@ -25,6 +25,7 @@ export async function handler(event) {
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
     redis.smembers(prefix + "attendedSet"),
+    redis.hgetall(prefix + "ticketNames")
   ]);
 
   const [
@@ -36,6 +37,7 @@ export async function handler(event) {
     cancelledSet,
     missedSet,
     attendedSet,
+    nameMap
   ] = data;
 
   const safeParse = (val) => {
@@ -72,6 +74,13 @@ export async function handler(event) {
   const map = {};
   for (let i = 1; i <= ticketCounter; i++) {
     map[i] = { ticket: i };
+  }
+
+  if (nameMap) {
+    Object.entries(nameMap).forEach(([num, n]) => {
+      const id = Number(num);
+      map[id] = { ...(map[id] || { ticket: id }), name: n };
+    });
   }
 
   // Busca timestamps individuais utilizando mget para evitar muitos acessos

@@ -115,7 +115,8 @@ async function getTicket() {
 async function checkStatus() {
   if (!ticketNumber) return;
   const res = await fetch(`/.netlify/functions/status?t=${tenantId}`);
-  const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [] } = await res.json();
+  const { currentCall, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
+  const myName = names[ticketNumber];
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
@@ -149,13 +150,14 @@ async function checkStatus() {
   }
 
   if (currentCall !== ticketNumber) {
-    statusEl.textContent = `Chamando: ${currentCall} (${attendant})`;
+    const cname = names[currentCall];
+    statusEl.textContent = cname ? `Chamando: ${currentCall} - ${cname} (${attendant})` : `Chamando: ${currentCall} (${attendant})`;
     btnCancel.disabled = false;
     statusEl.classList.remove("blink");
     return;
   }
 
-  statusEl.textContent = `É a sua vez! (Atendente: ${attendant})`;
+  statusEl.textContent = `É a sua vez${myName ? ' - ' + myName : ''}! (Atendente: ${attendant})`;
   statusEl.classList.add("blink");
   btnCancel.disabled = true;
 
@@ -163,11 +165,11 @@ async function checkStatus() {
     silenced    = false;
     lastEventTs = timestamp;
     if (!callStartTs) callStartTs = timestamp;
-    alertUser();
+    alertUser(myName);
   }
 }
 
-function alertUser() {
+function alertUser(name) {
   btnSilence.hidden = false;
   requestWakeLock();
   const doAlert = () => {
@@ -177,16 +179,21 @@ function alertUser() {
     if (navigator.vibrate) navigator.vibrate([200,100,200]);
   };
   doAlert();
-  sendNotification();
+  sendNotification(name);
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(`É a sua vez: ${ticketNumber} ${name || ''}`);
+    utter.lang = 'pt-BR';
+    speechSynthesis.speak(utter);
+  }
   alertInterval = setInterval(doAlert, 5000);
 }
 
-async function sendNotification() {
+async function sendNotification(name) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     const reg = await navigator.serviceWorker.getRegistration('sw.js');
     const opts = {
-      body: `Ticket ${ticketNumber} - dirija-se ao atendimento`,
+      body: `Ticket ${ticketNumber}${name ? ' - ' + name : ''} - dirija-se ao atendimento`,
       vibrate: [200,100,200],
       tag: 'sannext-call',
       renotify: true,

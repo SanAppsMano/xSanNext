@@ -74,17 +74,19 @@ export async function handler(event) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
 
+  const name = await redis.hget(prefix + "ticketNames", String(next));
+
   // Armazena o timestamp da chamada para consulta posterior
   await redis.set(prefix + `calledTime:${next}`, ts);
 
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",
-    JSON.stringify({ ticket: next, attendant, ts, wait })
+    JSON.stringify({ ticket: next, attendant, ts, wait, name })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ called: next, attendant, ts, wait }),
+    body: JSON.stringify({ called: next, attendant, ts, wait, name }),
   };
 }

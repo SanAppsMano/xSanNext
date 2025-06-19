@@ -22,3 +22,17 @@ h1 {
   font-weight: bold;
   color: #0077cc;
 }
+.number.manual {
+  color: #e91e63;
+}
+.name {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+  0%,50%,100% { opacity:1; }
+  25%,75% { opacity:0; }
+}

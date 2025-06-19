@@ -244,6 +244,9 @@ body {
   border: 1px solid #ccc;
   border-radius: var(--radius);
 }
+.manual button {
+  white-space: nowrap;
+}
 
 .status-info {
   font-size: 1rem;

@@ -15,10 +15,11 @@ export async function handler(event) {
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
-  const [cancelledSet, missedSet, attendedSet] = await Promise.all([
+  const [cancelledSet, missedSet, attendedSet, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
-    redis.smembers(prefix + "attendedSet")
+    redis.smembers(prefix + "attendedSet"),
+    redis.hgetall(prefix + "ticketNames")
   ]);
   const cancelledNums = cancelledSet.map(n => Number(n)).sort((a, b) => a - b);
   const missedNums    = missedSet.map(n => Number(n)).sort((a, b) => a - b);
@@ -43,6 +44,7 @@ export async function handler(event) {
       attendedNumbers: attendedNums,
       attendedCount,
       waiting,
+      names: nameMap || {},
     }),
   };
 }
