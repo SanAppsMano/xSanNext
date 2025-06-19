@@ -13,6 +13,7 @@ export async function handler(event) {
   const ts     = Date.now();
 
   // Zera todos os contadores
+  const lastTicket = Number(await redis.get(prefix + "ticketCounter") || 0);
   await redis.set(prefix + "ticketCounter", 0);
   await redis.set(prefix + "callCounter",  0);
   await redis.set(prefix + "currentCall",  0);
@@ -23,8 +24,7 @@ export async function handler(event) {
   await redis.del(prefix + "attendedSet");
 
   // Remove nomes associados aos tickets existentes
-  const maxTicket = Number(await redis.get(prefix + "ticketCounter") || 0);
-  for (let i = 1; i <= maxTicket; i++) {
+  for (let i = 1; i <= lastTicket; i++) {
     await redis.del(prefix + `ticketName:${i}`);
   }
 

@@ -16,11 +16,13 @@ function speak(text) {
   }
 }
 
-function doAlert(name) {
+function doAlert(ticket, name) {
   if (silenced) return;
   alertSound.currentTime = 0;
   alertSound.play().catch(()=>{});
-  speak(`${name}, é a sua vez`);
+  let text = `É a sua vez: ticket ${ticket}`;
+  if (name) text += ` para ${name}`;
+  speak(text);
 }
 
 async function fetchStatus() {
@@ -46,9 +48,9 @@ async function fetchStatus() {
     if (currentCall && currentCall !== lastCall) {
       silenced = false;
       btnSilence.hidden = false;
-      doAlert(currentName || '');
+      doAlert(currentCall, currentName || '');
       clearInterval(alertInterval);
-      alertInterval = setInterval(() => doAlert(currentName || ''), 5000);
+      alertInterval = setInterval(() => doAlert(currentCall, currentName || ''), 5000);
       lastCall = currentCall;
     }
   } catch (e) {
