@@ -15,6 +15,7 @@ export async function handler(event) {
   const ticketCounter = Number(await redis.get(prefix + "ticketCounter") || 0);
   const attendant     = (await redis.get(prefix + "currentAttendant")) || "";
   const timestamp     = Number(await redis.get(prefix + "currentCallTs")  || 0);
+  const currentName   = (await redis.get(prefix + "currentName")) || "";
   const [cancelledSet, missedSet, attendedSet] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
@@ -28,10 +29,22 @@ export async function handler(event) {
   const attendedCount = attendedNums.length;
   const waiting       = Math.max(0, ticketCounter - cancelledCount - missedCount - attendedCount);
 
+  const waitingNums = [];
+  for (let i = currentCall + 1; i <= ticketCounter; i++) {
+    if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
+    waitingNums.push(i);
+  }
+  const manualNames = {};
+  await Promise.all(waitingNums.map(async n => {
+    const nm = await redis.get(prefix + `manualName:${n}`);
+    if (nm) manualNames[n] = nm;
+  }));
+
   return {
     statusCode: 200,
     body: JSON.stringify({
       currentCall,
+      currentName,
       callCounter,
       ticketCounter,
       attendant,
@@ -43,6 +56,7 @@ export async function handler(event) {
       attendedNumbers: attendedNums,
       attendedCount,
       waiting,
+      manualNames,
     }),
   };
 }

@@ -14,7 +14,12 @@ export async function handler(event) {
     redis.lrange(prefix + "log:attended", 0, 49),
     redis.smembers(prefix + "attendedSet"),
   ]);
-  const list = raw.map(s => JSON.parse(s)).sort((a, b) => b.ts - a.ts);
+  const list = (await Promise.all(raw.map(async s => {
+    const obj = JSON.parse(s);
+    const name = await redis.get(prefix + `manualName:${obj.ticket}`);
+    if (name) obj.name = name;
+    return obj;
+  }))).sort((a, b) => b.ts - a.ts);
   const nums = attendedSet.map(n => Number(n));
 
   return {

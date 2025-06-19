@@ -37,9 +37,10 @@ export async function handler(event) {
     }
     // Log de cancelamento
     const ts = Date.now();
+    const name = (await redis.get(prefix + `manualName:${ticketNum}`)) || "";
     await redis.lpush(
       prefix + "log:cancelled",
-      JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })
+      JSON.stringify({ ticket: Number(ticketNum), name, ts, reason, duration: duration ? Number(duration) : 0, wait })
     );
 
     return {

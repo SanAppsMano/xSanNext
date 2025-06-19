@@ -16,7 +16,12 @@ export async function handler(event) {
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet")
   ]);
-  const all = raw.map(s => JSON.parse(s));
+  const all = await Promise.all(raw.map(async s => {
+    const obj = JSON.parse(s);
+    const name = await redis.get(prefix + `manualName:${obj.ticket}`);
+    if (name) obj.name = name;
+    return obj;
+  }));
   const cancelledSet = new Set(cancelledArr);
   const missedSet    = new Set(missedArr);
   const cancelled = all

@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAttended    = document.getElementById('btn-attended');
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
+  const btnNewManual   = document.getElementById('btn-new-manual');
   const btnReset       = document.getElementById('btn-reset');
 
   // QR Interaction setup
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let manualNames    = {};
   const fmtTime     = ts => new Date(ts).toLocaleTimeString();
 
  /** Renderiza o QR Code e configura interação */
@@ -190,6 +192,7 @@ function startBouncingCompanyName(text) {
         missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
+        manualNames: mn = {},
       } = await res.json();
 
       currentCallNum  = currentCall;
@@ -200,6 +203,7 @@ function startBouncingCompanyName(text) {
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
+      manualNames     = mn || {};
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       waitingEl.textContent     = waiting;
@@ -244,7 +248,7 @@ function startBouncingCompanyName(text) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = i;
+      opt.textContent = manualNames[i] ? `${i} - ${manualNames[i]}` : i;
       selectManual.appendChild(opt);
     }
     selectManual.disabled = selectManual.options.length === 1;
@@ -257,21 +261,23 @@ function startBouncingCompanyName(text) {
       const { cancelled = [], missed = [], missedNumbers = [] } = await res.json();
 
       cancelListEl.innerHTML = '';
-      cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
+      cancelled.forEach(({ ticket, name, ts, reason, duration, wait }) => {
         const li = document.createElement('li');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
       });
 
       missedListEl.innerHTML = '';
-      missed.forEach(({ ticket, ts, duration, wait }) => {
+      missed.forEach(({ ticket, name, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('missed');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         missedListEl.appendChild(li);
       });
     } catch (e) {
@@ -286,12 +292,13 @@ function startBouncingCompanyName(text) {
       const { attended = [] } = await res.json();
 
       attendedListEl.innerHTML = '';
-      attended.forEach(({ ticket, ts, duration, wait }) => {
+      attended.forEach(({ ticket, name, ts, duration, wait }) => {
         const li = document.createElement('li');
         li.classList.add('attended');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         attendedListEl.appendChild(li);
       });
     } catch (e) {
@@ -332,6 +339,18 @@ function startBouncingCompanyName(text) {
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
+    };
+    btnNewManual.onclick = async () => {
+      const name = prompt('Nome do cliente (opcional):', '');
+      if (name === null) return;
+      const res = await fetch(`/.netlify/functions/manual?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      alert(`Ticket ${data.ticketNumber} gerado`);
       refreshAll(t);
     };
     btnReset.onclick = async () => {

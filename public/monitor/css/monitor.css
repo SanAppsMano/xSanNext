@@ -22,3 +22,27 @@ h1 {
   font-weight: bold;
   color: #0077cc;
 }
+
+.name {
+  font-size: 3rem;
+  margin-top: 0.5rem;
+  color: #0077cc;
+}
+
+.btn-silence {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+.btn-silence[hidden] { display: none; }
+
+@keyframes blink {
+  0%,50%,100% { opacity: 1; }
+  25%,75% { opacity: 0; }
+}
+.blink { animation: blink 1s linear infinite; }
+
+.manual-ticket .number,
+.manual-ticket .name {
+  color: #d9534f;
+}

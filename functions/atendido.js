@@ -40,11 +40,12 @@ export async function handler(event) {
   await redis.set(prefix + "currentCall", 0);
   await redis.set(prefix + "currentCallTs", 0);
   await redis.del(prefix + "currentAttendant");
+  await redis.del(prefix + "currentName");
 
   const ts = Date.now();
   await redis.lpush(
     prefix + "log:attended",
-    JSON.stringify({ ticket: Number(ticket), ts, duration, wait })
+    JSON.stringify({ ticket: Number(ticket), name: await redis.get(prefix + `manualName:${ticket}`) || "", ts, duration, wait })
   );
 
   return {

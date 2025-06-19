@@ -70,15 +70,17 @@ export async function handler(event) {
   if (attendant) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
+  const manualName = (await redis.get(prefix + `manualName:${next}`)) || "";
+  await redis.set(prefix + "currentName", manualName);
 
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",
-    JSON.stringify({ ticket: next, attendant, ts, wait })
+    JSON.stringify({ ticket: next, name: manualName, attendant, ts, wait })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ called: next, attendant, ts, wait }),
+    body: JSON.stringify({ called: next, attendant, name: manualName, ts, wait }),
   };
 }
