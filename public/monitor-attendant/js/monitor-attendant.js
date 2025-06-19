@@ -194,8 +194,13 @@ function startBouncingCompanyName(text) {
     currentIdEl.textContent   = attendantId || '';
     const name = ticketNames[num] || '';
     currentNameEl.textContent = name;
-    if (name) currentNameEl.classList.add('manual-name');
-    else currentNameEl.classList.remove('manual-name');
+    if (name) {
+      currentNameEl.classList.add('manual-name');
+      currentCallEl.classList.add('manual-name');
+    } else {
+      currentNameEl.classList.remove('manual-name');
+      currentCallEl.classList.remove('manual-name');
+    }
   }
 
   /** Busca status e atualiza UI */
@@ -229,8 +234,13 @@ function startBouncingCompanyName(text) {
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       const nm = ticketNames[currentCall] || '';
       currentNameEl.textContent = nm;
-      if (nm) currentNameEl.classList.add('manual-name');
-      else currentNameEl.classList.remove('manual-name');
+      if (nm) {
+        currentNameEl.classList.add('manual-name');
+        currentCallEl.classList.add('manual-name');
+      } else {
+        currentNameEl.classList.remove('manual-name');
+        currentCallEl.classList.remove('manual-name');
+      }
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
@@ -393,7 +403,7 @@ function startBouncingCompanyName(text) {
 
     // Monta tabela
     const table = document.getElementById('report-table');
-    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Nome</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
     const tbody = document.createElement('tbody');
     const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
     const label = (st) => ({
@@ -407,6 +417,7 @@ function startBouncingCompanyName(text) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${tk.ticket}</td>
+        <td>${tk.name || ''}</td>
         <td>${label(tk.status)}</td>
         <td>${tk.enteredBr || fmt(tk.entered)}</td>
         <td>${tk.calledBr || fmt(tk.called)}</td>
@@ -431,11 +442,11 @@ function startBouncingCompanyName(text) {
       const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const col = (i) => String.fromCharCode(65 + i);
 
-      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
       const rows = [];
       rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
       tickets.forEach((tk,idx)=>{
-        const vals=[tk.ticket,label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const vals=[tk.ticket,tk.name||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
         const r=idx+2;
         rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
@@ -528,8 +539,8 @@ function startBouncingCompanyName(text) {
       ];
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
-      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [15, 30, 35, 35, 35, 35, 25, 25];
+      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [15, 40, 30, 35, 35, 35, 35, 25, 25];
       const startX = 20;
       const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
@@ -550,6 +561,7 @@ function startBouncingCompanyName(text) {
         }
         drawRow([
           tk.ticket,
+          tk.name || '',
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',

@@ -26,9 +26,11 @@ async function fetchCurrent() {
     const name = currentName || names[currentCall] || '';
     nameEl.textContent = name;
     if (name) {
-      nameEl.classList.toggle('manual-name', true);
+      nameEl.classList.add('manual-name');
+      currentEl.classList.add('manual-name');
     } else {
       nameEl.classList.remove('manual-name');
+      currentEl.classList.remove('manual-name');
     }
     if (currentCall !== lastCall || name !== lastName) {
       lastCall = currentCall;
