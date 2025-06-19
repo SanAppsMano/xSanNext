@@ -22,6 +22,7 @@ export async function handler(event) {
       wait = Date.now() - Number(joinTs);
     }
     await redis.del(prefix + `ticketTime:${ticketNum}`);
+    await redis.del(prefix + `ticketName:${ticketNum}`);
   }
 
   const attended = ticketNum

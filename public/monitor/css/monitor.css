@@ -22,3 +22,34 @@ h1 {
   font-weight: bold;
   color: #0077cc;
 }
+.name {
+  font-size: 2rem;
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.waiting {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.waiting li {
+  font-size: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.blink {
+  animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75%     { opacity: 0; }
+}
+
+.btn-silence {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}

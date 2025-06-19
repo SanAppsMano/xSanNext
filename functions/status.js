@@ -28,6 +28,20 @@ export async function handler(event) {
   const attendedCount = attendedNums.length;
   const waiting       = Math.max(0, ticketCounter - cancelledCount - missedCount - attendedCount);
 
+  // Mapear nomes para tickets ativos
+  const activeTickets = [];
+  for (let i = 1; i <= ticketCounter; i++) {
+    if (!cancelledNums.includes(i) && !missedNums.includes(i) && !attendedNums.includes(i)) {
+      activeTickets.push(i);
+    }
+  }
+  const names = {};
+  for (const n of activeTickets) {
+    const name = await redis.get(prefix + `ticketName:${n}`);
+    if (name) names[n] = name;
+  }
+  const currentName = await redis.get(prefix + `ticketName:${currentCall}`);
+
   return {
     statusCode: 200,
     body: JSON.stringify({
@@ -43,6 +57,8 @@ export async function handler(event) {
       attendedNumbers: attendedNums,
       attendedCount,
       waiting,
+      currentName,
+      names,
     }),
   };
 }

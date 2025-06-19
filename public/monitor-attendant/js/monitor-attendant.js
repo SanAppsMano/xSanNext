@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendantInput = document.getElementById('attendant-id');
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
+  const callNameEl     = document.getElementById('call-name');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAttended    = document.getElementById('btn-attended');
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
+  const btnNewTicket   = document.getElementById('btn-new-ticket');
   const btnReset       = document.getElementById('btn-reset');
 
   // QR Interaction setup
@@ -170,10 +172,16 @@ function startBouncingCompanyName(text) {
 }
 
   /** Atualiza chamada */
-  function updateCall(num, attendantId) {
+  function updateCall(num, attendantId, name) {
     currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
     currentIdEl.textContent   = attendantId || '';
+    if (name) {
+      callNameEl.textContent = name;
+      callNameEl.hidden = false;
+    } else {
+      callNameEl.hidden = true;
+    }
   }
 
   /** Busca status e atualiza UI */
@@ -190,6 +198,7 @@ function startBouncingCompanyName(text) {
         missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
+        currentName = '',
       } = await res.json();
 
       currentCallNum  = currentCall;
@@ -203,6 +212,12 @@ function startBouncingCompanyName(text) {
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       waitingEl.textContent     = waiting;
+      if (currentName) {
+        callNameEl.textContent = currentName;
+        callNameEl.hidden = false;
+      } else {
+        callNameEl.hidden = true;
+      }
 
       cancelCountEl.textContent = cancelledCount;
       cancelThumbsEl.innerHTML  = '';
@@ -309,13 +324,13 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
-      const { called, attendant } = await (await fetch(url)).json();
-      updateCall(called, attendant);
+      const { called, attendant, name } = await (await fetch(url)).json();
+      updateCall(called, attendant, name);
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
-      updateCall(called, attendant);
+      const { called, attendant: att2, name: name2 } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`)).json();
+      updateCall(called, att2, name2);
       refreshAll(t);
     };
     btnAttended.onclick = async () => {
@@ -330,14 +345,26 @@ function startBouncingCompanyName(text) {
     btnManual.onclick = async () => {
       const num = Number(selectManual.value);
       if (!num) return;
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
-      updateCall(called, attendant);
+      const { called, attendant, name } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
+      updateCall(called, attendant, name);
+      refreshAll(t);
+    };
+    btnNewTicket.onclick = async () => {
+      const name = prompt('Nome do cliente:');
+      if (!name) return;
+      const res = await fetch(`/.netlify/functions/manualTicket?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      alert(`Ticket ${data.ticketNumber} - ${data.name}`);
       refreshAll(t);
     };
     btnReset.onclick = async () => {
       if (!confirm('Confirma resetar todos os tickets para 1?')) return;
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
-      updateCall(0, '');
+      updateCall(0, '', '');
       refreshAll(t);
     };
     renderQRCode(t);

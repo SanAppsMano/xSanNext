@@ -70,6 +70,7 @@ export async function handler(event) {
   if (attendant) {
     await redis.set(prefix + "currentAttendant", attendant);
   }
+  const name = await redis.get(prefix + `ticketName:${next}`);
 
   // Log de chamada
   await redis.lpush(
@@ -79,6 +80,6 @@ export async function handler(event) {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ called: next, attendant, ts, wait }),
+    body: JSON.stringify({ called: next, attendant, ts, wait, name }),
   };
 }

@@ -22,6 +22,12 @@ export async function handler(event) {
   await redis.del(prefix + "missedSet");
   await redis.del(prefix + "attendedSet");
 
+  // Remove nomes associados aos tickets existentes
+  const maxTicket = Number(await redis.get(prefix + "ticketCounter") || 0);
+  for (let i = 1; i <= maxTicket; i++) {
+    await redis.del(prefix + `ticketName:${i}`);
+  }
+
   // Log de reset
   await redis.lpush(
     prefix + "log:reset",
