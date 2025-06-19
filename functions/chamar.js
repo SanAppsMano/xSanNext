@@ -75,7 +75,7 @@ export async function handler(event) {
   // Log de chamada
   await redis.lpush(
     prefix + "log:called",
-    JSON.stringify({ ticket: next, attendant, ts, wait })
+    JSON.stringify({ ticket: next, attendant, ts, wait, name })
   );
 
   return {

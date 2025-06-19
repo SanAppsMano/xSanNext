@@ -34,6 +34,7 @@ export async function handler(event) {
   const callTs = Number(await redis.get(prefix + "currentCallTs") || 0);
   const duration = callTs ? Date.now() - callTs : 0;
   const wait = Number(await redis.get(prefix + `wait:${ticket}`) || 0);
+  const name = await redis.get(prefix + `ticketName:${ticket}`);
   await redis.del(prefix + `wait:${ticket}`);
   await redis.del(prefix + `ticketName:${ticket}`);
 
@@ -45,11 +46,11 @@ export async function handler(event) {
   const ts = Date.now();
   await redis.lpush(
     prefix + "log:attended",
-    JSON.stringify({ ticket: Number(ticket), ts, duration, wait })
+    JSON.stringify({ ticket: Number(ticket), ts, duration, wait, name })
   );
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ attended: true, ticket: Number(ticket), duration, wait, ts }),
+    body: JSON.stringify({ attended: true, ticket: Number(ticket), duration, wait, ts, name }),
   };
 }

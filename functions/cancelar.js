@@ -16,11 +16,13 @@ export async function handler(event) {
   await redis.del(prefix + `ticket:${clientId}`);
 
   let wait = 0;
+  let name = null;
   if (ticketNum) {
     const joinTs = await redis.get(prefix + `ticketTime:${ticketNum}`);
     if (joinTs) {
       wait = Date.now() - Number(joinTs);
     }
+    name = await redis.get(prefix + `ticketName:${ticketNum}`);
     await redis.del(prefix + `ticketTime:${ticketNum}`);
     await redis.del(prefix + `ticketName:${ticketNum}`);
   }
@@ -40,12 +42,12 @@ export async function handler(event) {
     const ts = Date.now();
     await redis.lpush(
       prefix + "log:cancelled",
-      JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait })
+      JSON.stringify({ ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait, name })
     );
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait }),
+      body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: duration ? Number(duration) : 0, wait, name }),
     };
   }
 

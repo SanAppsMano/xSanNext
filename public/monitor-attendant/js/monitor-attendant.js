@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnManual      = document.getElementById('btn-manual');
   const btnNewTicket   = document.getElementById('btn-new-ticket');
   const btnReset       = document.getElementById('btn-reset');
+  const btnReport      = document.getElementById('btn-report');
 
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
@@ -272,21 +273,23 @@ function startBouncingCompanyName(text) {
       const { cancelled = [], missed = [], missedNumbers = [] } = await res.json();
 
       cancelListEl.innerHTML = '';
-      cancelled.forEach(({ ticket, ts, reason, duration, wait }) => {
+      cancelled.forEach(({ ticket, ts, reason, duration, wait, name }) => {
         const li = document.createElement('li');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         cancelListEl.appendChild(li);
       });
 
       missedListEl.innerHTML = '';
-      missed.forEach(({ ticket, ts, duration, wait }) => {
+      missed.forEach(({ ticket, ts, duration, wait, name }) => {
         const li = document.createElement('li');
         li.classList.add('missed');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         missedListEl.appendChild(li);
       });
     } catch (e) {
@@ -301,12 +304,13 @@ function startBouncingCompanyName(text) {
       const { attended = [] } = await res.json();
 
       attendedListEl.innerHTML = '';
-      attended.forEach(({ ticket, ts, duration, wait }) => {
+      attended.forEach(({ ticket, ts, duration, wait, name }) => {
         const li = document.createElement('li');
         li.classList.add('attended');
         const durTxt = duration ? ` (${Math.round(duration/1000)}s)` : '';
         const waitTxt = wait ? ` [${Math.round(wait/1000)}s]` : '';
-        li.innerHTML = `<span>${ticket}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
+        const nameTxt = name ? ` - ${name}` : '';
+        li.innerHTML = `<span>${ticket}${nameTxt}</span><span class="ts">${fmtTime(ts)}${durTxt}${waitTxt}</span>`;
         attendedListEl.appendChild(li);
       });
     } catch (e) {
@@ -366,6 +370,9 @@ function startBouncingCompanyName(text) {
       await fetch(`/.netlify/functions/reset?t=${t}`, { method: 'POST' });
       updateCall(0, '', '');
       refreshAll(t);
+    };
+    btnReport.onclick = () => {
+      window.open(`report.html?t=${t}`, '_blank');
     };
     renderQRCode(t);
     refreshAll(t);
