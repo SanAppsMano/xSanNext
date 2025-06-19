@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerLabel    = document.getElementById('header-label');
   const attendantInput = document.getElementById('attendant-id');
   const currentCallEl  = document.getElementById('current-call');
+  const currentNameEl  = document.getElementById('current-name');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
@@ -84,6 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAttended    = document.getElementById('btn-attended');
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
+  const inputManualName= document.getElementById('manual-name');
+  const btnAddTicket   = document.getElementById('btn-add-ticket');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const reportModal    = document.getElementById('report-modal');
@@ -119,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let ticketNames    = {};
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
     if (!ms) return '-';
@@ -188,12 +192,22 @@ function startBouncingCompanyName(text) {
     currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
     currentIdEl.textContent   = attendantId || '';
+    const name = ticketNames[num] || '';
+    currentNameEl.textContent = name;
+    if (name) {
+      currentNameEl.classList.add('manual-name');
+      currentCallEl.classList.add('manual-name');
+    } else {
+      currentNameEl.classList.remove('manual-name');
+      currentCallEl.classList.remove('manual-name');
+    }
   }
 
   /** Busca status e atualiza UI */
   async function fetchStatus(t) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
+      const data = await res.json();
       const {
         currentCall,
         ticketCounter: tc,
@@ -204,7 +218,9 @@ function startBouncingCompanyName(text) {
         missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
-      } = await res.json();
+        names: nms = {},
+      } = data;
+      ticketNames = nms;
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
@@ -216,6 +232,15 @@ function startBouncingCompanyName(text) {
       attendedCount   = ac;
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
+      const nm = ticketNames[currentCall] || '';
+      currentNameEl.textContent = nm;
+      if (nm) {
+        currentNameEl.classList.add('manual-name');
+        currentCallEl.classList.add('manual-name');
+      } else {
+        currentNameEl.classList.remove('manual-name');
+        currentCallEl.classList.remove('manual-name');
+      }
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
@@ -258,7 +283,8 @@ function startBouncingCompanyName(text) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = i;
+      const n = ticketNames[i];
+      opt.textContent = n ? `${i} - ${n}` : i;
       selectManual.appendChild(opt);
     }
     selectManual.disabled = selectManual.options.length === 1;
@@ -377,7 +403,7 @@ function startBouncingCompanyName(text) {
 
     // Monta tabela
     const table = document.getElementById('report-table');
-    table.innerHTML = '<thead><tr><th>Ticket</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Ticket</th><th>Nome</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Atendido</th><th>Cancelado</th><th>Espera</th><th>Duração</th></tr></thead>';
     const tbody = document.createElement('tbody');
     const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR') : '-';
     const label = (st) => ({
@@ -391,6 +417,7 @@ function startBouncingCompanyName(text) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${tk.ticket}</td>
+        <td>${tk.name || ''}</td>
         <td>${label(tk.status)}</td>
         <td>${tk.enteredBr || fmt(tk.entered)}</td>
         <td>${tk.calledBr || fmt(tk.called)}</td>
@@ -415,11 +442,11 @@ function startBouncingCompanyName(text) {
       const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const col = (i) => String.fromCharCode(65 + i);
 
-      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
       const rows = [];
       rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
       tickets.forEach((tk,idx)=>{
-        const vals=[tk.ticket,label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const vals=[tk.ticket,tk.name||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
         const r=idx+2;
         rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
@@ -512,8 +539,8 @@ function startBouncingCompanyName(text) {
       ];
       summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
 
-      const headers = ['Ticket','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [15, 30, 35, 35, 35, 35, 25, 25];
+      const headers = ['Ticket','Nome','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [15, 40, 30, 35, 35, 35, 35, 25, 25];
       const startX = 20;
       const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
@@ -534,6 +561,7 @@ function startBouncingCompanyName(text) {
         }
         drawRow([
           tk.ticket,
+          tk.name || '',
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',
@@ -584,6 +612,19 @@ function startBouncingCompanyName(text) {
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
+    };
+    btnAddTicket.onclick = async () => {
+      const name = inputManualName.value.trim();
+      if (!name) return;
+      const res = await fetch(`/.netlify/functions/entrar?t=${t}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name })
+      });
+      const { ticketNumber } = await res.json();
+      ticketNames[ticketNumber] = name;
+      inputManualName.value = '';
       refreshAll(t);
     };
     btnReset.onclick = async () => {
