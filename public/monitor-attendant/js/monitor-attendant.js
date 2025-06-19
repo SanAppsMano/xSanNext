@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerLabel    = document.getElementById('header-label');
   const attendantInput = document.getElementById('attendant-id');
   const currentCallEl  = document.getElementById('current-call');
+  const currentNameEl  = document.getElementById('current-name');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
   const cancelListEl   = document.getElementById('cancel-list');
@@ -84,6 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAttended    = document.getElementById('btn-attended');
   const selectManual   = document.getElementById('manual-select');
   const btnManual      = document.getElementById('btn-manual');
+  const inputManualName= document.getElementById('manual-name');
+  const btnAddTicket   = document.getElementById('btn-add-ticket');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const reportModal    = document.getElementById('report-modal');
@@ -119,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let ticketNames    = {};
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
     if (!ms) return '-';
@@ -188,12 +192,17 @@ function startBouncingCompanyName(text) {
     currentCallNum = num;
     currentCallEl.textContent = num > 0 ? num : '–';
     currentIdEl.textContent   = attendantId || '';
+    const name = ticketNames[num] || '';
+    currentNameEl.textContent = name;
+    if (name) currentNameEl.classList.add('manual-name');
+    else currentNameEl.classList.remove('manual-name');
   }
 
   /** Busca status e atualiza UI */
   async function fetchStatus(t) {
     try {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
+      const data = await res.json();
       const {
         currentCall,
         ticketCounter: tc,
@@ -204,7 +213,9 @@ function startBouncingCompanyName(text) {
         missedCount: mc = 0,
         attendedCount: ac = 0,
         waiting = 0,
-      } = await res.json();
+        names: nms = {},
+      } = data;
+      ticketNames = nms;
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
@@ -216,6 +227,10 @@ function startBouncingCompanyName(text) {
       attendedCount   = ac;
 
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
+      const nm = ticketNames[currentCall] || '';
+      currentNameEl.textContent = nm;
+      if (nm) currentNameEl.classList.add('manual-name');
+      else currentNameEl.classList.remove('manual-name');
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
@@ -258,7 +273,8 @@ function startBouncingCompanyName(text) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = i;
+      const n = ticketNames[i];
+      opt.textContent = n ? `${i} - ${n}` : i;
       selectManual.appendChild(opt);
     }
     selectManual.disabled = selectManual.options.length === 1;
@@ -584,6 +600,19 @@ function startBouncingCompanyName(text) {
       if (!num) return;
       const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
       updateCall(called, attendant);
+      refreshAll(t);
+    };
+    btnAddTicket.onclick = async () => {
+      const name = inputManualName.value.trim();
+      if (!name) return;
+      const res = await fetch(`/.netlify/functions/entrar?t=${t}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name })
+      });
+      const { ticketNumber } = await res.json();
+      ticketNames[ticketNumber] = name;
+      inputManualName.value = '';
       refreshAll(t);
     };
     btnReset.onclick = async () => {

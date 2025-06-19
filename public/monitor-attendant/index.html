@@ -74,6 +74,7 @@
     <section class="call-panel">
       <div class="display">
         Chamando: <span id="current-call">–</span>
+        <span id="current-name" class="current-name"></span>
         <small id="current-id" class="id-label"></small>
       </div>
       <button id="btn-next" class="btn btn-primary">Próximo</button>
@@ -83,6 +84,10 @@
       <div class="manual">
         <select id="manual-select"></select>
         <button id="btn-manual" class="btn btn-secondary">Chamar</button>
+      </div>
+      <div class="manual-entry">
+        <input id="manual-name" type="text" placeholder="Nome do cliente" />
+        <button id="btn-add-ticket" class="btn btn-secondary">Gerar Manual</button>
       </div>
 
       <div class="status-info">
