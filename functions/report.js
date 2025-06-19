@@ -89,14 +89,26 @@ export async function handler(event) {
     });
     return result;
   }
-  const [enteredTimes, calledTimes, attendedTimes, cancelledTimes] = await Promise.all([
+  async function loadNames() {
+    const keys = [];
+    for (let i = 1; i <= ticketCounter; i++) {
+      keys.push(prefix + `name:${i}`);
+    }
+    const values = await redis.mget(...keys);
+    const result = {};
+    values.forEach((val, idx) => { if (val) result[idx + 1] = val; });
+    return result;
+  }
+  const [enteredTimes, calledTimes, attendedTimes, cancelledTimes, names] = await Promise.all([
     loadTimes('ticketTime'),
     loadTimes('calledTime'),
     loadTimes('attendedTime'),
     loadTimes('cancelledTime'),
+    loadNames(),
   ]);
   entered.forEach((e) => {
     map[e.ticket] = { ...(map[e.ticket] || { ticket: e.ticket }), entered: e.ts };
+    if (e.name) map[e.ticket].name = e.name;
   });
   called.forEach(c => {
     map[c.ticket] = {
@@ -125,6 +137,7 @@ export async function handler(event) {
     if (!tk.called && calledTimes[i]) tk.called = calledTimes[i];
     if (!tk.attended && attendedTimes[i]) tk.attended = attendedTimes[i];
     if (!tk.cancelled && cancelledTimes[i]) tk.cancelled = cancelledTimes[i];
+    if (!tk.name && names[i]) tk.name = names[i];
   }
 
   const tickets = Object.values(map).sort((a, b) => a.ticket - b.ticket);
