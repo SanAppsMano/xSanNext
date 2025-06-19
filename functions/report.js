@@ -74,13 +74,19 @@ export async function handler(event) {
     map[i] = { ticket: i };
   }
 
-  // Busca timestamps individuais como fallback quando não há logs
+  // Busca timestamps individuais utilizando mget para evitar muitos acessos
   async function loadTimes(prefixKey) {
-    const result = {};
+    const keys = [];
     for (let i = 1; i <= ticketCounter; i++) {
-      const val = await redis.get(prefix + `${prefixKey}:${i}`);
-      if (val) result[i] = Number(val);
+      keys.push(prefix + `${prefixKey}:${i}`);
     }
+    const values = await redis.mget(...keys);
+    const result = {};
+    values.forEach((val, idx) => {
+      if (val !== null && val !== undefined) {
+        result[idx + 1] = Number(val);
+      }
+    });
     return result;
   }
   const [enteredTimes, calledTimes, attendedTimes, cancelledTimes] = await Promise.all([
