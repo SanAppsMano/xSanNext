@@ -37,10 +37,11 @@ export async function handler(event) {
     }
   }
 
-  // Quando um número é chamado manualmente (paramNum),
-  // não devemos marcar o chamado anterior como perdido,
-  // pois ele continua aguardando na fila
-  if (!paramNum && prevCall && prevCall !== next) {
+  // Quando a chamada é automática (Next), o ticket anteriormente
+  // chamado só perde a vez se avançarmos para um número maior
+  // que ele. Isso evita que chamados manuais removam números
+  // menores da fila.
+  if (!paramNum && prevCall && next > prevCall) {
     const [isCancelled, isMissed, isAttended] = await Promise.all([
       redis.sismember(prefix + "cancelledSet", String(prevCall)),
       redis.sismember(prefix + "missedSet", String(prevCall)),
