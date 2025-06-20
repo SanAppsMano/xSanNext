@@ -243,6 +243,9 @@ btnSilence.addEventListener("click", () => {
 });
 
 btnCancel.addEventListener("click", async () => {
+  const confirmExit = confirm("Tem certeza que deseja sair da fila?");
+  if (!confirmExit) return;
+
   btnCancel.disabled = true;
   statusEl.textContent = "Cancelando...";
   clearInterval(alertInterval);
