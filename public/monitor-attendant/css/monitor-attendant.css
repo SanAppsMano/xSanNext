@@ -233,22 +233,6 @@ body {
   background: #f2a100;
 }
 
-.manual {
-  display: flex;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
-}
-.manual select {
-  flex: 1;
-  min-width: 0;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: var(--radius);
-  max-width: 14rem; /* show numbers with short names */
-}
-.manual button {
-  white-space: nowrap;
-}
 
 .status-info {
   font-size: 1rem;
