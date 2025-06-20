@@ -12,12 +12,11 @@ export async function handler(event) {
   const paramNum  = url.searchParams.get("num");
   const attendant = url.searchParams.get("id") || "";
 
-  const prevCall   = Number(await redis.get(prefix + "currentCall") || 0);
-  const prevCallTs = Number(await redis.get(prefix + "currentCallTs") || 0);
+  const counterKey = prefix + "callCounter";
+  const prevCounter = Number(await redis.get(counterKey) || 0);
 
   // Próximo a chamar
   let next;
-  const counterKey = prefix + "callCounter";
   if (paramNum) {
     next = Number(paramNum);
     // Não atualiza o contador sequencial para manter a ordem quando
@@ -37,28 +36,29 @@ export async function handler(event) {
     }
   }
 
-  // Quando a chamada é automática (Next), o ticket anteriormente
-  // chamado só perde a vez se avançarmos para um número maior
-  // que ele. Isso evita que chamados manuais removam números
-  // menores da fila.
-  if (!paramNum && prevCall && next > prevCall) {
+  // Quando a chamada é automática (Próximo), quem perde a vez é o último
+  // número chamado nessa sequência (prevCounter), independente de haver
+  // chamadas manuais entre eles. Assim tickets com ou sem nome são
+  // tratados igualmente.
+  if (!paramNum && prevCounter && next > prevCounter) {
     const [isCancelled, isMissed, isAttended] = await Promise.all([
-      redis.sismember(prefix + "cancelledSet", String(prevCall)),
-      redis.sismember(prefix + "missedSet", String(prevCall)),
-      redis.sismember(prefix + "attendedSet", String(prevCall))
+      redis.sismember(prefix + "cancelledSet", String(prevCounter)),
+      redis.sismember(prefix + "missedSet", String(prevCounter)),
+      redis.sismember(prefix + "attendedSet", String(prevCounter))
     ]);
     if (!isCancelled && !isMissed && !isAttended) {
-      const dur = prevCallTs ? Date.now() - prevCallTs : 0;
-      const waitPrev = Number(await redis.get(prefix + `wait:${prevCall}`) || 0);
-      await redis.sadd(prefix + "missedSet", String(prevCall));
+      const calledTs = Number(await redis.get(prefix + `calledTime:${prevCounter}`) || 0);
+      const dur = calledTs ? Date.now() - calledTs : 0;
+      const waitPrev = Number(await redis.get(prefix + `wait:${prevCounter}`) || 0);
+      await redis.sadd(prefix + "missedSet", String(prevCounter));
       const missTs = Date.now();
       // registra o momento em que o ticket perdeu a vez
-      await redis.set(prefix + `cancelledTime:${prevCall}`, missTs);
+      await redis.set(prefix + `cancelledTime:${prevCounter}`, missTs);
       await redis.lpush(
         prefix + "log:cancelled",
-        JSON.stringify({ ticket: prevCall, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
+        JSON.stringify({ ticket: prevCounter, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
       );
-      await redis.del(prefix + `wait:${prevCall}`);
+      await redis.del(prefix + `wait:${prevCounter}`);
     }
   }
 
