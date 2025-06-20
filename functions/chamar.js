@@ -37,7 +37,10 @@ export async function handler(event) {
     }
   }
 
-  if (prevCall && prevCall !== next) {
+  // Quando um número é chamado manualmente (paramNum),
+  // não devemos marcar o chamado anterior como perdido,
+  // pois ele continua aguardando na fila
+  if (!paramNum && prevCall && prevCall !== next) {
     const [isCancelled, isMissed, isAttended] = await Promise.all([
       redis.sismember(prefix + "cancelledSet", String(prevCall)),
       redis.sismember(prefix + "missedSet", String(prevCall)),
