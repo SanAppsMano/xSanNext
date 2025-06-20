@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedListEl = document.getElementById('attended-list');
   const attendedThumbsEl = document.getElementById('attended-thumbs');
   const attendedCountEl  = document.getElementById('attended-count');
+  const queueListEl    = document.getElementById('queue-list');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
   const btnAttended    = document.getElementById('btn-attended');
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentCallNum = 0; // último número chamado exibido
   let ticketNames    = {};
   let ticketCounter  = 0;
+  let callCounter    = 0;
   let cancelledNums  = [];
   let missedNums     = [];
   let cancelledCount = 0;
@@ -192,6 +194,23 @@ function startBouncingCompanyName(text) {
     currentIdEl.textContent   = attendantId || '';
   }
 
+  function updateQueueList() {
+    if (!queueListEl) return;
+    queueListEl.innerHTML = '';
+    const pending = [];
+    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+      if (i === currentCallNum) continue;
+      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
+      pending.push(i);
+    }
+    pending.forEach(n => {
+      const li = document.createElement('li');
+      const nm = ticketNames[n];
+      li.textContent = nm ? `${n} - ${nm}` : String(n);
+      queueListEl.appendChild(li);
+    });
+  }
+
   /** Busca status e atualiza UI */
   async function fetchStatus(t) {
     try {
@@ -199,6 +218,7 @@ function startBouncingCompanyName(text) {
       const {
         currentCall,
         ticketCounter: tc,
+        callCounter: cCtr = 0,
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
@@ -211,6 +231,7 @@ function startBouncingCompanyName(text) {
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
+      callCounter     = cCtr;
       ticketNames     = names || {};
       cancelledNums   = cancelledNumbers.map(Number);
       missedNums      = missedNumbers.map(Number);
@@ -250,6 +271,8 @@ function startBouncingCompanyName(text) {
         div.textContent = n;
         attendedThumbsEl.appendChild(div);
       });
+
+      updateQueueList();
 
       // Exibe o botão de relatório apenas se houver tickets registrados
       btnReport.hidden = ticketCounter === 0;

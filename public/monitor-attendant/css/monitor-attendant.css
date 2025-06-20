@@ -183,11 +183,16 @@ body {
   border-radius: var(--radius);
 }
 
-.call-panel, .history-panel {
+.call-panel, .history-panel, .queue-panel {
   background: #fff;
   padding: 1rem;
   border-radius: var(--radius);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.queue-panel h2 {
+  font-size: 1.25rem;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
 }
 .display {
   font-size: 1.5rem;
