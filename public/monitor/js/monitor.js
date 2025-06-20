@@ -1,5 +1,9 @@
 
 // public/monitor/js/monitor.js
+// Captura o tenantId a partir da URL para poder consultar o status correto
+const urlParams = new URL(location).searchParams;
+const tenantId  = urlParams.get('t');
+
 let lastCall = 0;
 const alertSound = document.getElementById('alert-sound');
 
@@ -17,7 +21,8 @@ function alertUser(num, name) {
 
 async function fetchCurrent() {
   try {
-    const res = await fetch('/.netlify/functions/status');
+    const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
+    const res = await fetch(url);
     const { currentCall, names = {} } = await res.json();
     const currentEl = document.getElementById('current');
     const nameEl = document.getElementById('current-name');
