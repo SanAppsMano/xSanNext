@@ -20,10 +20,8 @@ export async function handler(event) {
   const counterKey = prefix + "callCounter";
   if (paramNum) {
     next = Number(paramNum);
-    const currentCounter = Number(await redis.get(counterKey) || 0);
-    if (next > currentCounter) {
-      await redis.set(counterKey, next);
-    }
+    // Não atualiza o contador sequencial para manter a ordem quando
+    // um número é chamado manualmente
     await redis.srem(prefix + "cancelledSet", String(next));
     await redis.srem(prefix + "missedSet", String(next));
   } else {
