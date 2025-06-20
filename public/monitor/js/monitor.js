@@ -7,6 +7,23 @@ const tenantId  = urlParams.get('t');
 let lastCall = 0;
 const alertSound = document.getElementById('alert-sound');
 
+// Desbloqueia o audio na primeira interação do usuário para evitar
+// que o navegador bloqueie a execução do som de alerta
+if (alertSound) {
+  const unlock = () => {
+    alertSound.volume = 0;
+    alertSound.play().then(() => {
+      alertSound.pause();
+      alertSound.currentTime = 0;
+      alertSound.volume = 1;
+    }).catch(() => {});
+    document.removeEventListener('click', unlock);
+    document.removeEventListener('touchstart', unlock);
+  };
+  document.addEventListener('click', unlock, { once: true });
+  document.addEventListener('touchstart', unlock, { once: true });
+}
+
 function alertUser(num, name) {
   if (alertSound) {
     alertSound.currentTime = 0;
