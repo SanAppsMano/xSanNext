@@ -115,8 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
-  let currentCallNum = 0; // último número chamado
-  let ticketNames  = {};
+  let currentCallNum = 0; // último número chamado exibido
+  let callCounter    = 0; // último número chamado automaticamente
+  let ticketNames    = {};
   let ticketCounter  = 0;
   let cancelledNums  = [];
   let missedNums     = [];
@@ -201,6 +202,7 @@ function startBouncingCompanyName(text) {
       const res = await fetch(`/.netlify/functions/status?t=${t}`);
       const {
         currentCall,
+        callCounter: cCounter = 0,
         ticketCounter: tc,
         cancelledNumbers = [],
         missedNumbers = [],
@@ -213,6 +215,7 @@ function startBouncingCompanyName(text) {
       } = await res.json();
 
       currentCallNum  = currentCall;
+      callCounter     = cCounter;
       ticketCounter   = tc;
       ticketNames     = names || {};
       cancelledNums   = cancelledNumbers.map(Number);
@@ -267,7 +270,9 @@ function startBouncingCompanyName(text) {
   function updateManualOptions() {
     selectManual.innerHTML = '<option value="">Selecione...</option>';
     const MAX_LEN = 15;
-    for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
+    // Baseia-se no contador sequencial para manter números antigos
+    // disponíveis mesmo após uma chamada manual
+    for (let i = callCounter + 1; i <= ticketCounter; i++) {
       if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
       const opt = document.createElement('option');
       opt.value = i;
