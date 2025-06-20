@@ -1,11 +1,12 @@
 
 // public/monitor/js/monitor.js
 // Captura o tenantId a partir da URL para poder consultar o status correto
-const urlParams = new URL(location).searchParams;
+const urlParams = new URL(window.location.href).searchParams;
 const tenantId  = urlParams.get('t');
 
 let lastCall = 0;
-const alertSound = document.getElementById('alert-sound');
+const alertSound   = document.getElementById('alert-sound');
+const unlockOverlay = document.getElementById('unlock-overlay');
 
 // Desbloqueia o audio na primeira interação do usuário para evitar
 // que o navegador bloqueie a execução do som de alerta
@@ -16,12 +17,15 @@ if (alertSound) {
       alertSound.pause();
       alertSound.currentTime = 0;
       alertSound.volume = 1;
+      if (unlockOverlay) unlockOverlay.classList.add('hidden');
     }).catch(() => {});
     document.removeEventListener('click', unlock);
     document.removeEventListener('touchstart', unlock);
+    if (unlockOverlay) unlockOverlay.removeEventListener('click', unlock);
   };
   document.addEventListener('click', unlock, { once: true });
   document.addEventListener('touchstart', unlock, { once: true });
+  if (unlockOverlay) unlockOverlay.addEventListener('click', unlock);
 }
 
 function alertUser(num, name) {
