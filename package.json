@@ -1,0 +1,20 @@
+{
+  "name": "sannext",
+  "version": "1.0.0",
+  "description": "Serverless functions e front-end estático para a fila virtual SuaVez",
+  "type": "module",
+  "main": "functions/entrar.js",
+  "scripts": {
+    "build": "echo \"Sem build necessário para funções serverless\"",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.20.0",
+    "uuid": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "faunadb": "^4.6.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
