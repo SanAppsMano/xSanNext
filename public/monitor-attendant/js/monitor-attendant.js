@@ -6,7 +6,6 @@
  * - Autenticação posterior (senha protegida)
  * - Reset de configuração (empresa+senha) no Redis e local
  * - Renderização de QR Code para a fila do cliente
- * - Dropdown manual com tickets disponíveis
  * - Chamadas, repetição, reset de tickets, polling de cancelados
  * - Interação QR: expandir e copiar link
  */
@@ -79,11 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedListEl = document.getElementById('attended-list');
   const attendedThumbsEl = document.getElementById('attended-thumbs');
   const attendedCountEl  = document.getElementById('attended-count');
+  const queueListEl    = document.getElementById('queue-list');
   const btnNext        = document.getElementById('btn-next');
   const btnRepeat      = document.getElementById('btn-repeat');
   const btnAttended    = document.getElementById('btn-attended');
-  const selectManual   = document.getElementById('manual-select');
-  const btnManual      = document.getElementById('btn-manual');
   const btnNewManual   = document.getElementById('btn-new-manual');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
@@ -115,9 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
   qrOverlay.appendChild(qrOverlayContent);
   document.body.appendChild(qrOverlay);
 
-  let currentCallNum = 0; // último número chamado
-  let ticketNames  = {};
+  let currentCallNum = 0; // último número chamado exibido
+  let ticketNames    = {};
   let ticketCounter  = 0;
+  let callCounter    = 0;
   let cancelledNums  = [];
   let missedNums     = [];
   let cancelledCount = 0;
@@ -195,6 +194,23 @@ function startBouncingCompanyName(text) {
     currentIdEl.textContent   = attendantId || '';
   }
 
+  function updateQueueList() {
+    if (!queueListEl) return;
+    queueListEl.innerHTML = '';
+    const pending = [];
+    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+      if (i === currentCallNum) continue;
+      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
+      pending.push(i);
+    }
+    pending.forEach(n => {
+      const li = document.createElement('li');
+      const nm = ticketNames[n];
+      li.textContent = nm ? `${n} - ${nm}` : String(n);
+      queueListEl.appendChild(li);
+    });
+  }
+
   /** Busca status e atualiza UI */
   async function fetchStatus(t) {
     try {
@@ -202,6 +218,7 @@ function startBouncingCompanyName(text) {
       const {
         currentCall,
         ticketCounter: tc,
+        callCounter: cCtr = 0,
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
@@ -214,6 +231,7 @@ function startBouncingCompanyName(text) {
 
       currentCallNum  = currentCall;
       ticketCounter   = tc;
+      callCounter     = cCtr;
       ticketNames     = names || {};
       cancelledNums   = cancelledNumbers.map(Number);
       missedNums      = missedNumbers.map(Number);
@@ -254,30 +272,13 @@ function startBouncingCompanyName(text) {
         attendedThumbsEl.appendChild(div);
       });
 
+      updateQueueList();
+
       // Exibe o botão de relatório apenas se houver tickets registrados
       btnReport.hidden = ticketCounter === 0;
-
-      updateManualOptions();
     } catch (e) {
       console.error(e);
     }
-  }
-
-  /** Atualiza opções manuais */
-  function updateManualOptions() {
-    selectManual.innerHTML = '<option value="">Selecione...</option>';
-    const MAX_LEN = 15;
-    for (let i = currentCallNum + 1; i <= ticketCounter; i++) {
-      if (cancelledNums.includes(i) || missedNums.includes(i) || attendedNums.includes(i)) continue;
-      const opt = document.createElement('option');
-      opt.value = i;
-      const nm = ticketNames[i];
-      let label = nm ? `${i} - ${nm}` : String(i);
-      if (label.length > MAX_LEN) label = label.slice(0, MAX_LEN) + '…';
-      opt.textContent = label;
-      selectManual.appendChild(opt);
-    }
-    selectManual.disabled = selectManual.options.length === 1;
   }
 
   /** Busca cancelados e popula lista */
@@ -595,13 +596,6 @@ function startBouncingCompanyName(text) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticket: currentCallNum })
       });
-      refreshAll(t);
-    };
-    btnManual.onclick = async () => {
-      const num = Number(selectManual.value);
-      if (!num) return;
-      const { called, attendant } = await (await fetch(`/.netlify/functions/chamar?t=${t}&num=${num}`)).json();
-      updateCall(called, attendant);
       refreshAll(t);
     };
     btnNewManual.onclick = async () => {
