@@ -34,7 +34,8 @@ function alertUser(num, name) {
     alertSound.play().catch(() => {});
   }
   if ('speechSynthesis' in window) {
-    const utter = new SpeechSynthesisUtterance(`É a sua vez: ${num} ${name || ''}`);
+    const namePart = name ? ` ${name}` : '';
+    const utter = new SpeechSynthesisUtterance(`Chamando: ${num}${namePart}`);
     utter.lang = 'pt-BR';
     speechSynthesis.speak(utter);
   }
