@@ -37,7 +37,15 @@ exports.handler = async (event) => {
 
   const novoTTL = ttlNow + extraDays * 24 * 60 * 60;
   try {
+    const data = await redisExt.get(`monitor:${token}`);
+    let empresa;
+    if (data) {
+      try { empresa = JSON.parse(data).empresa; } catch {}
+    }
     await redisExt.expire(`monitor:${token}`, novoTTL);
+    if (empresa) {
+      await redisExt.expire(`monitorByEmpresa:${empresa.toLowerCase()}`, novoTTL);
+    }
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, expiresIn: novoTTL })

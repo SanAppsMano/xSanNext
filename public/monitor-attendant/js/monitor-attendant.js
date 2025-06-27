@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
+  const onboardExisting = document.getElementById('onboard-existing');
+
+  const loginCompany  = document.getElementById('login-company');
+  const loginPassword = document.getElementById('login-password');
+  const loginSubmit   = document.getElementById('login-submit');
+  const loginError    = document.getElementById('login-error');
 
   // Botão Redefinir Cadastro
   const btnDeleteConfig = document.getElementById('btn-delete-config');
@@ -666,6 +672,38 @@ function startBouncingCompanyName(text) {
     // 3) Senão, exibir onboarding para trial
     onboardOverlay.hidden = false;
     loginOverlay.hidden   = true;
+
+    onboardExisting.onclick = () => {
+      onboardOverlay.hidden = true;
+      loginOverlay.hidden = false;
+    };
+
+    loginSubmit.onclick = async () => {
+      const empresa = loginCompany.value.trim();
+      const pw      = loginPassword.value;
+      if (!empresa || !pw) {
+        loginError.textContent = 'Preencha empresa e senha.';
+        return;
+      }
+      loginError.textContent = '';
+      try {
+        const res = await fetch(`${location.origin}/.netlify/functions/getMonitorToken`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empresa, senha: pw })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.token) throw new Error();
+        token = data.token;
+        cfg = { token, empresa, senha: pw };
+        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresa)}`);
+        showApp(empresa, token);
+      } catch (e) {
+        console.error(e);
+        loginError.textContent = 'Empresa ou senha inválida.';
+      }
+    };
 
     onboardSubmit.onclick = async () => {
       const label = onboardLabel.value.trim();

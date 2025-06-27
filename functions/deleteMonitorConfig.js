@@ -34,9 +34,17 @@ exports.handler = async (event) => {
   }
 
   try {
+    const data = await redis.get(`monitor:${token}`);
+    let empresa;
+    if (data) {
+      try { empresa = JSON.parse(data).empresa; } catch {}
+    }
     // Remove também índice possivelmente cadastrado (tenantByEmail), se existir
     await redis.del(`monitor:${token}`);
     await redis.del(`tenantByEmail:${token}`);
+    if (empresa) {
+      await redis.del(`monitorByEmpresa:${empresa.toLowerCase()}`);
+    }
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true })
