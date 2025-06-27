@@ -31,6 +31,11 @@ exports.handler = async (event) => {
       JSON.stringify({ empresa, senha }),
       { ex: ttl }
     );
+    await redis.set(
+      `monitorByEmpresa:${empresa.toLowerCase()}`,
+      token,
+      { ex: ttl }
+    );
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true, expiresIn: ttl })
