@@ -556,6 +556,12 @@ body {
   margin: 1rem auto;
 }
 
+.copy-info {
+  font-size: 0.9rem;
+  color: var(--success);
+  margin-top: 0.5rem;
+}
+
 /* Animação de expansão e fade */
 @keyframes ripple-effect {
   to {

@@ -605,6 +605,10 @@ function startBouncingCompanyName(text) {
     viewQrEl.innerHTML = '';
     const url = `${location.origin}/monitor/?t=${t}`;
     new QRCode(viewQrEl, { text: url, width: 256, height: 256 });
+    navigator.clipboard.writeText(url).then(() => {
+      const info = document.getElementById('view-copy-info');
+      if (info) info.hidden = false;
+    }).catch(() => {});
     viewModal.hidden = false;
   }
 
@@ -652,7 +656,11 @@ function startBouncingCompanyName(text) {
     btnShare.onclick  = () => openShareModal(t);
     btnView.onclick   = () => openViewModal(t);
     shareClose.onclick = () => { shareModal.hidden = true; };
-    viewClose.onclick  = () => { viewModal.hidden = true; };
+    viewClose.onclick  = () => {
+      viewModal.hidden = true;
+      const info = document.getElementById('view-copy-info');
+      if (info) info.hidden = true;
+    };
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
