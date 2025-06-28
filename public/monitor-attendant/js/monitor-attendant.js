@@ -229,6 +229,7 @@ function startBouncingCompanyName(text) {
         currentCall,
         ticketCounter: tc,
         callCounter: cCtr = 0,
+        attendant: attendantId = '',
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
@@ -253,6 +254,7 @@ function startBouncingCompanyName(text) {
       const cName = ticketNames[currentCall];
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
+      currentIdEl.textContent   = attendantId || '';
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
