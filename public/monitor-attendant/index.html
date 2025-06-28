@@ -64,6 +64,9 @@
   <button id="btn-delete-config" class="btn btn-secondary">
     Redefinir Cadastro
   </button>
+  <button id="btn-share-monitor" class="btn btn-secondary">
+    Duplicar Monitor
+  </button>
 </header>
 
   <!-- Conteúdo Principal -->
@@ -143,6 +146,16 @@
         <button id="export-excel" class="btn btn-secondary">Exportar Excel</button>
         <button id="export-pdf" class="btn btn-secondary">Exportar PDF</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal de Duplicação do Monitor -->
+  <div id="share-modal" hidden>
+    <div class="modal-content">
+      <span id="share-close" class="close">&times;</span>
+      <h2>Duplicar Monitor</h2>
+      <div id="share-qrcode"></div>
+      <p>Escaneie para abrir este monitor em outro dispositivo.</p>
     </div>
   </div>
 </body>

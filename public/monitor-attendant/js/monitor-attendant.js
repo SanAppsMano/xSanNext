@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams     = new URL(location).searchParams;
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
+  let senhaParam      = urlParams.get('senha');
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
 
@@ -91,11 +92,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewManual   = document.getElementById('btn-new-manual');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
+  const btnShare       = document.getElementById('btn-share-monitor');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
   const reportSummary  = document.getElementById('report-summary');
   const reportChartEl  = document.getElementById('report-chart');
+  const shareModal     = document.getElementById('share-modal');
+  const shareClose     = document.getElementById('share-close');
+  const shareQrEl      = document.getElementById('share-qrcode');
 
   // Botão de relatório oculto até haver dados
   btnReport.hidden = true;
@@ -580,6 +585,15 @@ function startBouncingCompanyName(text) {
     reportClose.onclick = () => { reportModal.hidden = true; };
   }
 
+  /** Exibe QR Code para duplicar monitor */
+  function openShareModal(t) {
+    if (!t || !cfg) return;
+    shareQrEl.innerHTML = '';
+    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&senha=${encodeURIComponent(cfg.senha)}`;
+    new QRCode(shareQrEl, { text: url, width: 256, height: 256 });
+    shareModal.hidden = false;
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     btnNext.onclick = async () => {
@@ -621,6 +635,8 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnReport.onclick = () => openReport(t);
+    btnShare.onclick  = () => openShareModal(t);
+    shareClose.onclick = () => { shareModal.hidden = true; };
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
@@ -645,12 +661,12 @@ function startBouncingCompanyName(text) {
       return;
     }
 
-    // 2) Se vier ?t e ?empresa na URL, pede só senha
+    // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
       try {
-        const senhaPrompt = prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
         const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
