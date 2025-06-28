@@ -3,22 +3,33 @@
 // Captura o tenantId a partir da URL para poder consultar o status correto
 const urlParams = new URL(window.location.href).searchParams;
 const tenantId  = urlParams.get('t');
+const empresa   = urlParams.get('empresa');
+
+if (empresa) {
+  const el = document.getElementById('company-name');
+  if (el) el.textContent = decodeURIComponent(empresa);
+}
 
 let lastCall = 0;
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
+let wakeLock = null;
 
 // Desbloqueia o audio na primeira interação do usuário para evitar
 // que o navegador bloqueie a execução do som de alerta
 if (alertSound) {
   const unlock = () => {
     alertSound.volume = 0;
-    alertSound.play().then(() => {
-      alertSound.pause();
-      alertSound.currentTime = 0;
-      alertSound.volume = 1;
-      if (unlockOverlay) unlockOverlay.classList.add('hidden');
-    }).catch(() => {});
+    const p = alertSound.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        alertSound.pause();
+        alertSound.currentTime = 0;
+      }).catch(() => {});
+    }
+    alertSound.volume = 1;
+    requestWakeLock();
+    if (unlockOverlay) unlockOverlay.classList.add('hidden');
     document.removeEventListener('click', unlock);
     document.removeEventListener('touchstart', unlock);
     if (unlockOverlay) unlockOverlay.removeEventListener('click', unlock);
@@ -27,6 +38,31 @@ if (alertSound) {
   document.addEventListener('touchstart', unlock, { once: true });
   if (unlockOverlay) unlockOverlay.addEventListener('click', unlock);
 }
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => (wakeLock = null));
+  } catch (e) {
+    console.error('wakeLock', e);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) requestWakeLock();
+});
+
+window.addEventListener('beforeunload', () => {
+  releaseWakeLock();
+});
 
 function alertUser(num, name) {
   if (alertSound) {
@@ -71,3 +107,5 @@ async function fetchCurrent() {
 // Polling a cada 2 segundos
 fetchCurrent();
 setInterval(fetchCurrent, 2000);
+
+requestWakeLock();
