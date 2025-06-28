@@ -693,10 +693,12 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ empresa, senha: pw })
         });
         let data;
+        let text;
         try {
-          data = await res.json();
+          text = await res.text();
+          data = JSON.parse(text);
         } catch (parseErr) {
-          console.error('JSON parse error:', parseErr);
+          console.error('JSON parse error:', parseErr, text);
           loginError.textContent = 'Erro inesperado no servidor.';
           return;
         }
