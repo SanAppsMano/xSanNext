@@ -692,9 +692,22 @@ function startBouncingCompanyName(text) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ empresa, senha: pw })
         });
-        const data = await res.json();
+        let data;
+        const text = await res.text();
+        try {
+          if (res.headers.get('content-type')?.includes('application/json')) {
+            data = JSON.parse(text);
+          } else {
+            throw new Error('Response is not JSON');
+          }
+        } catch (parseErr) {
+          console.error('JSON parse error:', parseErr, text);
+          loginError.textContent = `Erro ${res.status}: resposta inválida.`;
+          return;
+        }
         if (!res.ok || !data.token) {
-          throw new Error(data.error || `HTTP ${res.status}`);
+          const msg = typeof data.error === 'string' ? data.error : `HTTP ${res.status}`;
+          throw new Error(msg);
         }
         token = data.token;
         cfg = { token, empresa, senha: pw };
