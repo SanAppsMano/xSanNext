@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams     = new URL(location).searchParams;
   let token           = urlParams.get('t');
   let empresaParam    = urlParams.get('empresa');
+  let senhaParam      = urlParams.get('senha');
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
 
@@ -34,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
-  const onboardExisting = document.getElementById('onboard-existing');
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -91,11 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewManual   = document.getElementById('btn-new-manual');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
+  const btnShare       = document.getElementById('btn-share-monitor');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
   const reportSummary  = document.getElementById('report-summary');
   const reportChartEl  = document.getElementById('report-chart');
+  const shareModal     = document.getElementById('share-modal');
+  const shareClose     = document.getElementById('share-close');
+  const shareQrEl      = document.getElementById('share-qrcode');
 
   // Botão de relatório oculto até haver dados
   btnReport.hidden = true;
@@ -225,6 +229,7 @@ function startBouncingCompanyName(text) {
         currentCall,
         ticketCounter: tc,
         callCounter: cCtr = 0,
+        attendant: attendantId = '',
         cancelledNumbers = [],
         missedNumbers = [],
         attendedNumbers = [],
@@ -249,6 +254,7 @@ function startBouncingCompanyName(text) {
       const cName = ticketNames[currentCall];
       currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
       if (cName) currentCallEl.textContent += ` - ${cName}`;
+      currentIdEl.textContent   = attendantId || '';
       waitingEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
@@ -580,6 +586,15 @@ function startBouncingCompanyName(text) {
     reportClose.onclick = () => { reportModal.hidden = true; };
   }
 
+  /** Exibe QR Code para duplicar monitor */
+  function openShareModal(t) {
+    if (!t || !cfg) return;
+    shareQrEl.innerHTML = '';
+    const url = `${location.origin}/monitor-attendant/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}&senha=${encodeURIComponent(cfg.senha)}`;
+    new QRCode(shareQrEl, { text: url, width: 256, height: 256 });
+    shareModal.hidden = false;
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     btnNext.onclick = async () => {
@@ -621,6 +636,8 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnReport.onclick = () => openReport(t);
+    btnShare.onclick  = () => openShareModal(t);
+    shareClose.onclick = () => { shareModal.hidden = true; };
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
@@ -639,23 +656,43 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // 1) Se já temos cfg em localStorage, pular direto
-    if (cfg && cfg.empresa && cfg.senha && token) {
+    // 1) Se já temos cfg salvo e nenhum ?empresa foi passado, pular direto
+    if (cfg && cfg.empresa && cfg.senha && token && !empresaParam) {
       showApp(cfg.empresa, token);
       return;
     }
 
-    // 2) Se vier ?t e ?empresa na URL, pede só senha
+    // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
     if (token && empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
       try {
-        const senhaPrompt = prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
-        const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+        const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
+
+        let res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
+
+        if (!res.ok) {
+          // Se token falhar, tenta obter token válido usando empresa e senha
+          const tokRes = await fetch('/.netlify/functions/getMonitorToken', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empresa: empresaParam, senha: senhaPrompt })
+          });
+          if (tokRes.ok) {
+            const data = await tokRes.json();
+            token = data.token;
+            res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, senha: senhaPrompt })
+            });
+          }
+        }
+
         if (!res.ok) throw new Error();
         const { empresa } = await res.json();
         cfg = { token, empresa, senha: senhaPrompt };
@@ -673,10 +710,6 @@ function startBouncingCompanyName(text) {
     onboardOverlay.hidden = false;
     loginOverlay.hidden   = true;
 
-    onboardExisting.onclick = () => {
-      onboardOverlay.hidden = true;
-      loginOverlay.hidden = false;
-    };
 
     loginSubmit.onclick = async () => {
       const empresa = loginCompany.value.trim();
