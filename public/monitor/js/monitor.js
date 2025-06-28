@@ -3,6 +3,12 @@
 // Captura o tenantId a partir da URL para poder consultar o status correto
 const urlParams = new URL(window.location.href).searchParams;
 const tenantId  = urlParams.get('t');
+const empresa   = urlParams.get('empresa');
+
+if (empresa) {
+  const el = document.getElementById('company-name');
+  if (el) el.textContent = decodeURIComponent(empresa);
+}
 
 let lastCall = 0;
 const alertSound   = document.getElementById('alert-sound');
