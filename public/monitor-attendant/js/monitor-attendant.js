@@ -668,11 +668,31 @@ function startBouncingCompanyName(text) {
       onboardOverlay.hidden = true;
       try {
         const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
-        const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+
+        let res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
+
+        if (!res.ok) {
+          // Se token falhar, tenta obter token válido usando empresa e senha
+          const tokRes = await fetch('/.netlify/functions/getMonitorToken', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empresa: empresaParam, senha: senhaPrompt })
+          });
+          if (tokRes.ok) {
+            const data = await tokRes.json();
+            token = data.token;
+            res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, senha: senhaPrompt })
+            });
+          }
+        }
+
         if (!res.ok) throw new Error();
         const { empresa } = await res.json();
         cfg = { token, empresa, senha: senhaPrompt };
