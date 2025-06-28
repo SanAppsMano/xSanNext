@@ -10,7 +10,11 @@ export async function handler(event) {
 
   let body;
   try {
-    body = JSON.parse(event.body || '{}');
+    if (typeof event.body === 'string') {
+      body = JSON.parse(event.body || '{}');
+    } else {
+      body = event.body || {};
+    }
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
