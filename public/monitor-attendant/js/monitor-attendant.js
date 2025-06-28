@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const onboardPassword = document.getElementById('onboard-password');
   const onboardSubmit   = document.getElementById('onboard-submit');
   const onboardError    = document.getElementById('onboard-error');
-  const onboardExisting = document.getElementById('onboard-existing');
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
@@ -689,10 +688,6 @@ function startBouncingCompanyName(text) {
     onboardOverlay.hidden = false;
     loginOverlay.hidden   = true;
 
-    onboardExisting.onclick = () => {
-      onboardOverlay.hidden = true;
-      loginOverlay.hidden = false;
-    };
 
     loginSubmit.onclick = async () => {
       const empresa = loginCompany.value.trim();
