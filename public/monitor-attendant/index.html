@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SanNext Atendente</title>
+  <link rel="stylesheet" href="css/monitor-attendant.css"/>
+  <!-- Biblioteca de QR Code -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- jsPDF para exportação em PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0N82XM9NM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E0N82XM9NM');
+  </script>
+</head>
+<body>
+  <!-- Overlay de Onboarding -->
+  <div id="onboard-overlay">
+    <div class="onboard-box">
+      <h2>Configurar Monitor</h2>
+      <label>Nome da Empresa</label>
+      <input id="onboard-label" type="text" placeholder="Ex: Loja XYZ" />
+      <label>Senha de Acesso</label>
+      <input id="onboard-password" type="password" placeholder="Defina uma senha" autocomplete="new-password" />
+      <button id="onboard-submit">Criar Monitor</button>
+      <div id="onboard-error" class="error"></div>
+    </div>
+  </div>
+
+  <!-- Overlay de Login -->
+  <div id="login-overlay" hidden>
+    <div class="login-box">
+      <h2>Login Atendente</h2>
+      <input id="login-company" type="text" placeholder="Empresa" />
+      <input id="login-password" type="password" placeholder="Senha" autocomplete="current-password" />
+      <button id="login-submit">Entrar</button>
+      <div id="login-error" class="error"></div>
+    </div>
+  </div>
+
+<header class="header" hidden>
+  <div class="logo-container">
+    <!-- ícone inline SVG, sem dependência de arquivo externo -->
+    <svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <!-- círculo de fundo -->
+      <circle cx="12" cy="12" r="11" fill="#005a9c"/>
+      <!-- seta apontando para direita -->
+      <path d="M10 16l4-4-4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="logo-texts">
+      <span class="logo-text">SanNext</span>
+      <span id="header-label" class="company-text"></span>
+    </div>
+  </div>
+  <button id="btn-delete-config" class="btn btn-secondary">
+    Redefinir Cadastro
+  </button>
+  <button id="btn-share-monitor" class="btn btn-secondary">
+    Duplicar Monitor
+  </button>
+  <button id="btn-view-monitor" class="btn btn-secondary">
+    Espelhar Monitor
+  </button>
+</header>
+
+  <!-- Conteúdo Principal -->
+  <main class="main" hidden>
+    <!-- Seção de QR Code -->
+    <section class="qrcode-panel">
+      <h2>QR Code para clientes</h2>
+      <div id="qrcode"></div>
+      <p>Aponte a câmera do celular para este QR para entrar na fila.</p>
+    </section>
+
+    <!-- Painel de Identificador -->
+    <section class="id-panel">
+      <label for="attendant-id">Identificador:</label>
+      <input type="text" id="attendant-id" placeholder="Ex: Sala1 ou Sandes" />
+    </section>
+
+    <!-- Painel de Chamada -->
+    <section class="call-panel">
+      <div class="display">
+        Chamando: <span id="current-call">–</span>
+        <small id="current-id" class="id-label"></small>
+      </div>
+      <button id="btn-next" class="btn btn-primary">Próximo</button>
+      <button id="btn-repeat" class="btn btn-secondary">Repetir</button>
+      <button id="btn-attended" class="btn btn-success">Atendido</button>
+
+      <button id="btn-new-manual" class="btn btn-secondary">Ticket</button>
+
+      <div class="status-info">
+        Em espera: <span id="waiting-count">–</span> clientes
+      </div>
+
+      <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
+      <button id="btn-report" class="btn btn-secondary">Relatório</button>
+    </section>
+
+    <!-- Fila Virtual -->
+    <section class="queue-panel">
+      <h2>Fila Virtual</h2>
+      <ul id="queue-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico de Cancelados -->
+    <section class="history-panel">
+      <h2>Cancelados (<span id="cancel-count">0</span>)</h2>
+      <div id="cancel-thumbs" class="cancel-thumbs"></div>
+      <ul id="cancel-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico - Perdeu a Vez -->
+    <section class="history-panel">
+      <h2>Perdeu a Vez (<span id="missed-count">0</span>)</h2>
+      <div id="missed-thumbs" class="missed-thumbs"></div>
+      <ul id="missed-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico de Atendidos -->
+    <section class="history-panel">
+      <h2>Atendidos (<span id="attended-count">0</span>)</h2>
+      <div id="attended-thumbs" class="attended-thumbs"></div>
+      <ul id="attended-list" class="list"></ul>
+    </section>
+  </main>
+
+  <script src="js/monitor-attendant.js"></script>
+
+  <!-- Modal de Relatório -->
+  <div id="report-modal" hidden>
+    <div class="modal-content">
+      <span id="report-close" class="close">&times;</span>
+      <h2 id="report-title">Relatório</h2>
+      <div id="report-summary"></div>
+      <table id="report-table"></table>
+      <canvas id="report-chart" width="400" height="200"></canvas>
+      <div class="report-actions">
+        <button id="export-excel" class="btn btn-secondary">Exportar Excel</button>
+        <button id="export-pdf" class="btn btn-secondary">Exportar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Duplicação do Monitor -->
+  <div id="share-modal" hidden>
+    <div class="modal-content">
+      <span id="share-close" class="close">&times;</span>
+      <h2>Duplicar Monitor</h2>
+      <div id="share-qrcode"></div>
+      <p>Escaneie para abrir este monitor em outro dispositivo.</p>
+    </div>
+  </div>
+
+  <!-- Modal para Espelhar Monitor -->
+  <div id="view-modal" hidden>
+    <div class="modal-content">
+      <span id="view-close" class="close">&times;</span>
+      <h2>Espelhar Monitor</h2>
+      <div id="view-qrcode"></div>
+      <p>Escaneie para visualizar apenas o painel.</p>
+      <p id="view-copy-info" class="copy-info" hidden>Link copiado para a área de transferência.</p>
+    </div>
+  </div>
+</body>
+</html>
