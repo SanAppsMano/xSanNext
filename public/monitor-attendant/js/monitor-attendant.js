@@ -656,8 +656,8 @@ function startBouncingCompanyName(text) {
 
   // ■■■ Fluxo de Autenticação / Trial ■■■
   (async () => {
-    // 1) Se já temos cfg em localStorage, pular direto
-    if (cfg && cfg.empresa && cfg.senha && token) {
+    // 1) Se já temos cfg salvo e nenhum ?empresa foi passado, pular direto
+    if (cfg && cfg.empresa && cfg.senha && token && !empresaParam) {
       showApp(cfg.empresa, token);
       return;
     }
