@@ -1,7 +1,5 @@
 import { Redis } from '@upstash/redis';
 
-const redis = Redis.fromEnv();
-
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return {
@@ -23,6 +21,18 @@ export async function handler(event) {
   }
 
   const key = `monitorByEmpresa:${empresa.toLowerCase()}`;
+
+  let redis;
+  try {
+    redis = Redis.fromEnv();
+  } catch (err) {
+    console.error('Redis init error:', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Server configuration error' })
+    };
+  }
+
   try {
     const token = await redis.get(key);
     if (!token) {
