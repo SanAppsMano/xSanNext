@@ -66,6 +66,9 @@
   <button id="btn-share-monitor" class="btn btn-secondary">
     Duplicar Monitor
   </button>
+  <button id="btn-view-monitor" class="btn btn-secondary">
+    Espelhar Monitor
+  </button>
 </header>
 
   <!-- Conteúdo Principal -->
@@ -155,6 +158,17 @@
       <h2>Duplicar Monitor</h2>
       <div id="share-qrcode"></div>
       <p>Escaneie para abrir este monitor em outro dispositivo.</p>
+    </div>
+  </div>
+
+  <!-- Modal para Espelhar Monitor -->
+  <div id="view-modal" hidden>
+    <div class="modal-content">
+      <span id="view-close" class="close">&times;</span>
+      <h2>Espelhar Monitor</h2>
+      <div id="view-qrcode"></div>
+      <p>Escaneie para visualizar apenas o painel.</p>
+      <p id="view-copy-info" class="copy-info" hidden>Link copiado para a área de transferência.</p>
     </div>
   </div>
 </body>

@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const btnShare       = document.getElementById('btn-share-monitor');
+  const btnView        = document.getElementById('btn-view-monitor');
   const reportModal    = document.getElementById('report-modal');
   const reportClose    = document.getElementById('report-close');
   const reportTitle    = document.getElementById('report-title');
@@ -100,6 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const shareModal     = document.getElementById('share-modal');
   const shareClose     = document.getElementById('share-close');
   const shareQrEl      = document.getElementById('share-qrcode');
+  const viewModal      = document.getElementById('view-modal');
+  const viewClose      = document.getElementById('view-close');
+  const viewQrEl       = document.getElementById('view-qrcode');
 
   // Botão de relatório oculto até haver dados
   btnReport.hidden = true;
@@ -595,6 +599,19 @@ function startBouncingCompanyName(text) {
     shareModal.hidden = false;
   }
 
+  /** Exibe QR Code para espelhar monitor */
+  function openViewModal(t) {
+    if (!t) return;
+    viewQrEl.innerHTML = '';
+    const url = `${location.origin}/monitor/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}`;
+    new QRCode(viewQrEl, { text: url, width: 256, height: 256 });
+    navigator.clipboard.writeText(url).then(() => {
+      const info = document.getElementById('view-copy-info');
+      if (info) info.hidden = false;
+    }).catch(() => {});
+    viewModal.hidden = false;
+  }
+
   /** Inicializa botões e polling */
   function initApp(t) {
     btnNext.onclick = async () => {
@@ -637,7 +654,13 @@ function startBouncingCompanyName(text) {
     };
     btnReport.onclick = () => openReport(t);
     btnShare.onclick  = () => openShareModal(t);
+    btnView.onclick   = () => openViewModal(t);
     shareClose.onclick = () => { shareModal.hidden = true; };
+    viewClose.onclick  = () => {
+      viewModal.hidden = true;
+      const info = document.getElementById('view-copy-info');
+      if (info) info.hidden = true;
+    };
     renderQRCode(t);
     refreshAll(t);
     setInterval(() => refreshAll(t), 5000);
