@@ -692,9 +692,17 @@ function startBouncingCompanyName(text) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ empresa, senha: pw })
         });
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          console.error('JSON parse error:', parseErr);
+          loginError.textContent = 'Erro inesperado no servidor.';
+          return;
+        }
         if (!res.ok || !data.token) {
-          throw new Error(data.error || `HTTP ${res.status}`);
+          const msg = typeof data.error === 'string' ? data.error : `HTTP ${res.status}`;
+          throw new Error(msg);
         }
         token = data.token;
         cfg = { token, empresa, senha: pw };
