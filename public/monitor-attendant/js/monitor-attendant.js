@@ -603,7 +603,7 @@ function startBouncingCompanyName(text) {
   function openViewModal(t) {
     if (!t) return;
     viewQrEl.innerHTML = '';
-    const url = `${location.origin}/monitor/?t=${t}`;
+    const url = `${location.origin}/monitor/?t=${t}&empresa=${encodeURIComponent(cfg.empresa)}`;
     new QRCode(viewQrEl, { text: url, width: 256, height: 256 });
     navigator.clipboard.writeText(url).then(() => {
       const info = document.getElementById('view-copy-info');
