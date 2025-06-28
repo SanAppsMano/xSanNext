@@ -662,38 +662,54 @@ function startBouncingCompanyName(text) {
       return;
     }
 
-    // 2) Se vier ?t e ?empresa na URL, solicita senha (ou usa ?senha)
-    if (token && empresaParam) {
+    // 2) Se empresa for informada na URL, tenta autenticar com essa empresa
+    if (empresaParam) {
       loginOverlay.hidden   = true;
       onboardOverlay.hidden = true;
       try {
         const senhaPrompt = senhaParam || prompt(`Digite a senha de acesso para a empresa ${empresaParam}:`);
 
-        let res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+        if (!token) {
+          // Obter token apenas com empresa e senha
+          const tokRes = await fetch('/.netlify/functions/getMonitorToken', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empresa: empresaParam, senha: senhaPrompt })
+          });
+          if (!tokRes.ok) throw new Error();
+          const data = await tokRes.json();
+          token = data.token;
+        }
+
+        const res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
 
         if (!res.ok) {
-          // Se token falhar, tenta obter token válido usando empresa e senha
+          // Token fornecido inválido, tenta novamente buscando novo token
           const tokRes = await fetch('/.netlify/functions/getMonitorToken', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ empresa: empresaParam, senha: senhaPrompt })
           });
-          if (tokRes.ok) {
-            const data = await tokRes.json();
-            token = data.token;
-            res = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token, senha: senhaPrompt })
-            });
-          }
+          if (!tokRes.ok) throw new Error();
+          const data = await tokRes.json();
+          token = data.token;
+          const retry = await fetch(`${location.origin}/.netlify/functions/getMonitorConfig`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, senha: senhaPrompt })
+          });
+          if (!retry.ok) throw new Error();
+          cfg = { token, empresa: empresaParam, senha: senhaPrompt };
+          localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+          history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
+          showApp(empresaParam, token);
+          return;
         }
 
-        if (!res.ok) throw new Error();
         const { empresa } = await res.json();
         cfg = { token, empresa, senha: senhaPrompt };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
@@ -702,6 +718,8 @@ function startBouncingCompanyName(text) {
         return;
       } catch {
         alert('Token ou senha inválidos.');
+        loginOverlay.hidden = false;
+        loginCompany.value  = empresaParam;
         history.replaceState(null, '', '/monitor-attendant/');
       }
     }
