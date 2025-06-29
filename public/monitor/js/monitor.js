@@ -73,7 +73,7 @@ function alertUser(num, name, attendantId) {
   }
   if ('speechSynthesis' in window) {
     let text = `Senha ${num}`;
-    if (attendantId) text += `, identificador ${attendantId}`;
+    if (attendantId) text += `, ${attendantId}`;
     if (name) text += `, ${name}`;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'pt-BR';
