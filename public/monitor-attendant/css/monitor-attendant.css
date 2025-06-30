@@ -1,0 +1,543 @@
+/* public/monitor-attendant/css/monitor-attendant.css */
+
+:root {
+  --primary:    #005f8c;
+  --secondary:  #0077cc;
+  --warning:    #f5a623;
+  --danger:     #d0021b;
+  --success:    #28a745;
+  --bg:         #f5f7fa;
+  --text:       #333;
+  --muted:      #666;
+  --radius:     6px;
+  --font:       'Helvetica Neue', Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Onboarding overlay */
+#onboard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.onboard-box {
+  background: #fff;
+  padding: 2rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 360px;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.onboard-box h2 {
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+.onboard-box label {
+  display: block;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+.onboard-box input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  margin-bottom: 0.75rem;
+}
+.onboard-box button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.onboard-box .error {
+  margin-top: 0.5rem;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+#onboard-overlay[hidden] {
+  display: none !important;
+}
+
+
+/* Login overlay (hidden by default) */
+#login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.login-box {
+  background: #fff;
+  padding: 2rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.login-box h2 {
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+.login-box input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+.login-box button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.login-box .error {
+  margin-top: 0.5rem;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* Header and main content hidden by default until auth */
+.header, .main {
+  display: none;
+}
+
+/* After auth, show */
+.authenticated .header,
+.authenticated .main {
+  display: block;
+}
+
+/* Layout and buttons styling as before */
+.header {
+  background: var(--primary);
+  color: #fff;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.user {
+  font-size: 1rem;
+}
+
+.main {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.id-panel {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  text-align: left;
+}
+.id-panel label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.id-panel input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+
+.call-panel, .history-panel, .queue-panel {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.queue-panel h2 {
+  font-size: 1.25rem;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+.display {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+#current-call {
+  font-weight: bold;
+  color: var(--secondary);
+}
+.id-label {
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.btn {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-primary {
+  background: var(--secondary);
+  color: #fff;
+}
+.btn-secondary {
+  background: #eee;
+  color: var(--text);
+}
+.btn-warning {
+  background: var(--warning);
+  color: #333;
+}
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+.btn-warning:hover {
+  background: #f2a100;
+}
+
+
+.status-info {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.history-panel h2 {
+  font-size: 1.25rem;
+  color: var(--danger);
+  margin-bottom: 0.5rem;
+}
+.cancel-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.cancel-thumb {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  background: var(--danger);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.cancel-thumb.missed {
+  background: var(--warning);
+}
+.missed-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.missed-thumb {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  background: var(--warning);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.attended-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.attended-thumb {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  background: var(--success);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.list {
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-left: 0;
+}
+.list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+.list li.missed {
+  color: var(--warning);
+}
+.list li.attended {
+  color: var(--success);
+}
+.list li .ts {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+#login-overlay[hidden] {
+  display: none !important;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+/* Header principal */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Logo à esquerda, botão à direita */
+  padding: 0.75rem 1rem;
+  background-color: #005a9c;
+}
+
+/* Contêiner da logo + textos */
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+/* Bloco de textos (SanNext + empresa) */
+.logo-texts {
+  display: flex;
+  flex-direction: column; /* texto principal em cima, empresa embaixo */
+  line-height: 1.1;
+}
+
+/* Nome do app */
+.logo-text {
+  font-size: 1.65rem;  /* aumentei de 1.5rem para 1.75rem */
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Nome da empresa */
+.company-text {
+  font-size: 1.3rem;  /* aumentei de 0.9rem para 1.5rem */
+  color: #ffffff;
+  margin-top: 0.1rem;
+}
+
+
+/* Botão */
+#btn-delete-config {
+  /* ja herda .btn .btn-secondary, mas ajuste se quiser: */
+  background-color: #ffffff;
+  color: #005a9c;
+  border: none;
+}
+/* Texto que vai quicar atrás do QR expandido */
+.bouncing-name {
+  position: fixed;
+  top: 0;
+  left: 0;
+  font-size: 4rem;
+  font-weight: bold;
+  color: #FFFFFF;           /* branco puro para máximo contraste */
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.6),
+    0 0 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 1;               /* abaixo do overlay de QR, que está em z-index:1000 */
+  white-space: nowrap;
+}
+/* =============================== */
+/* Ripple effect e feedback tátil  */
+/* =============================== */
+
+.btn {
+  position: relative;        /* necessário para posicionar o ripple */
+  overflow: hidden;          /* limita o ripple ao botão */
+  transition: transform 0.2s;/* suaviza o “apertar” */
+}
+
+.btn:active {
+  transform: scale(0.97);    /* feedback de pressão */
+}
+
+/* Elemento de onda */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-effect 0.6s linear;
+}
+
+/* Modal de relatório */
+#report-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#report-modal[hidden] {
+  display: none !important;
+}
+#report-modal .modal-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#report-modal h2 {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+#report-summary {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+#report-modal .report-actions {
+  margin-top: 1rem;
+  text-align: right;
+}
+#report-modal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+#report-modal th,
+#report-modal td {
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.8;
+}
+#report-modal th {
+  background: #f0f0f0;
+}
+#report-modal .close {
+  float: right;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+#report-chart {
+  max-width: 100%;
+}
+
+
+/* Modal para espelhar monitor */
+#view-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#view-modal[hidden] {
+  display: none !important;
+}
+#view-modal .modal-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#view-modal .close {
+  float: right;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+#view-qrcode {
+  margin: 1rem auto;
+}
+
+.copy-info {
+  font-size: 0.9rem;
+  color: var(--success);
+  margin-top: 0.5rem;
+}
+
+/* Animação de expansão e fade */
+@keyframes ripple-effect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+
