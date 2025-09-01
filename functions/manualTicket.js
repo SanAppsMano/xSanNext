@@ -17,7 +17,9 @@ export async function handler(event) {
   if (!pwHash && !monitor) {
     return { statusCode: 404, body: "Invalid link" };
   }
-  const { name = "" } = JSON.parse(event.body || "{}");
+  const { name = "", priority: bodyPriority } = JSON.parse(event.body || "{}");
+  const priorityParam = bodyPriority ?? url.searchParams.get("priority");
+  const priority = priorityParam === true || priorityParam === "true";
 
   const prefix = `tenant:${tenantId}:`;
 
@@ -25,6 +27,11 @@ export async function handler(event) {
   await redis.set(prefix + `ticketTime:${ticketNumber}`, Date.now());
   if (name) {
     await redis.hset(prefix + "ticketNames", { [ticketNumber]: name });
+  }
+
+  if (priority) {
+    await redis.rpush(prefix + "priorityQueue", ticketNumber);
+    await redis.sadd(prefix + "prioritySet", String(ticketNumber));
   }
 
   const ts = Date.now();
