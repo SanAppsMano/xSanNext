@@ -22,6 +22,7 @@ export async function handler(event) {
     const prefix    = `tenant:${tenantId}:`;
     const paramNum  = url.searchParams.get("num");
     const identifier = url.searchParams.get("id") || "";
+    const p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
 
     const counterKey = prefix + "callCounter";
     const prevCounter = Number(await redis.get(counterKey) || 0);
@@ -32,6 +33,11 @@ export async function handler(event) {
       next = Number(paramNum);
       // Não atualiza o contador sequencial para manter a ordem quando
       // um número é chamado manualmente
+      await redis.srem(prefix + "cancelledSet", String(next));
+      await redis.srem(prefix + "missedSet", String(next));
+      await redis.srem(prefix + "skippedSet", String(next));
+    } else if (p) {
+      next = Number(p);
       await redis.srem(prefix + "cancelledSet", String(next));
       await redis.srem(prefix + "missedSet", String(next));
       await redis.srem(prefix + "skippedSet", String(next));
@@ -55,7 +61,7 @@ export async function handler(event) {
     // número chamado nessa sequência (prevCounter), independente de haver
     // chamadas manuais entre eles. Assim tickets com ou sem nome são
     // tratados igualmente.
-    if (!paramNum && prevCounter && next > prevCounter) {
+    if (!paramNum && !p && prevCounter && next > prevCounter) {
       const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(prevCounter)),
         redis.sismember(prefix + "missedSet", String(prevCounter)),
