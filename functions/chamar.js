@@ -87,15 +87,16 @@ export async function handler(event) {
       if (rqPrev && Number(rqPrev) === prevCounter) {
         await redis.del(requeuedPrevKey);
       } else {
-        const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
+        const [isCancelled, isMissed, isAttended, isSkipped, joinPrev, calledPrev] = await Promise.all([
           redis.sismember(prefix + "cancelledSet", String(prevCounter)),
           redis.sismember(prefix + "missedSet", String(prevCounter)),
           redis.sismember(prefix + "attendedSet", String(prevCounter)),
           redis.sismember(prefix + "skippedSet", String(prevCounter)),
-          redis.get(prefix + `ticketTime:${prevCounter}`)
+          redis.get(prefix + `ticketTime:${prevCounter}`),
+          redis.get(prefix + `calledTime:${prevCounter}`)
         ]);
-        if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
-          const calledTs = Number((await redis.get(prefix + `calledTime:${prevCounter}`)) || 0);
+        if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev && calledPrev) {
+          const calledTs = Number(calledPrev || 0);
           const dur = calledTs ? Date.now() - calledTs : 0;
           const waitPrev = Number((await redis.get(prefix + `wait:${prevCounter}`)) || 0);
           await redis.sadd(prefix + "missedSet", String(prevCounter));
