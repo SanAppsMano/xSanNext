@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRepeat      = document.getElementById('btn-repeat');
   const btnAttended    = document.getElementById('btn-attended');
   const btnNewManual   = document.getElementById('btn-new-manual');
+  const btnNewPriority = document.getElementById('btn-new-priority');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const btnView        = document.getElementById('btn-view-monitor');
@@ -707,7 +708,7 @@ function startBouncingCompanyName(text) {
   }
 
   async function refreshAll(t) {
-    await fetchStatus(t);
+    await fetchStatus(`${t}&_=${Date.now()}`);
     await Promise.all([fetchCancelled(t), fetchAttended(t), loadCloneList(t)]);
   }
 
@@ -1145,6 +1146,16 @@ function startBouncingCompanyName(text) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
+      });
+      refreshAll(t);
+    };
+    btnNewPriority.onclick = async () => {
+      const name = prompt('Nome do cliente:');
+      if (!name) return;
+      await fetch(`/.netlify/functions/manualTicket?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, priority: true })
       });
       refreshAll(t);
     };
