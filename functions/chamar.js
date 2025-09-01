@@ -1,173 +1,68 @@
 import { Redis } from "@upstash/redis";
-import errorHandler from "./utils/errorHandler.js";
 
-const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
+// Obter hash de um ticket. Garante objeto vazio se inexistente.
+async function getHash(redis, key) {
+  const data = await redis.hgetall(key);
+  return data || {};
+}
+
+// Busca próximo ticket pendente em uma lista, limpando itens inválidos.
+async function pickPendingFromList(redis, prefix, listKey) {
+  let len = await redis.llen(listKey);
+  while (len-- > 0) {
+    const ticketId = await redis.lindex(listKey, 0);
+    if (!ticketId) break;
+    const t = await getHash(redis, `${prefix}:ticket:${ticketId}`);
+    if (t && t.status === 'pending') {
+      await redis.lpop(listKey);
+      return ticketId;
+    }
+    // remove itens que não estão pendentes
+    await redis.lpop(listKey);
+  }
+  return null;
+}
+
+// Atualiza dados de chamada de um ticket.
+async function callTicket(redis, prefix, ticketId) {
+  const key = `${prefix}:ticket:${ticketId}`;
+  const now = Date.now();
+  await redis.hset(key, { status: 'called', called_at: String(now) });
+  await redis.hincrby(key, 'call_count', 1);
+  await redis.set(`${prefix}:last_called_ticket`, ticketId);
+  await redis.lpush(`${prefix}:log:called`, JSON.stringify({ ticketId, ts: now }));
+  return ticketId;
+}
 
 export async function handler(event) {
   try {
-    const url      = new URL(event.rawUrl);
-    const tenantId = url.searchParams.get("t");
-    if (!tenantId) {
-      return { statusCode: 400, body: "Missing tenantId" };
+    let body = {};
+    if (event.body) {
+      try { body = JSON.parse(event.body); } catch {}
+    }
+    const { token } = body;
+    if (!token) {
+      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'token ausente' }) };
     }
 
-    const redis     = Redis.fromEnv();
-    const [pwHash, monitor] = await redis.mget(
-      `tenant:${tenantId}:pwHash`,
-      `monitor:${tenantId}`
-    );
-    if (!pwHash && !monitor) {
-      return { statusCode: 404, body: "Invalid link" };
-    }
-    const prefix    = `tenant:${tenantId}:`;
-    const paramNum  = url.searchParams.get("num");
-    const identifier = url.searchParams.get("id") || "";
-    const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
-    const requeuedPrevKey = prefix + "requeuedPrev";
+    const redis = Redis.fromEnv();
+    const prefix = `tenant:${token}`;
+    const prefList = `${prefix}:queue:preferential`;
+    const normList = `${prefix}:queue:normal`;
 
-    let p = null;
-    if (!paramNum) {
-      // remove entradas inválidas da fila preferencial
-      while (true) {
-        const candidate = await redis.lpop(prefix + "priorityQueue");
-        if (!candidate) break;
-        const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
-          redis.sismember(prefix + "cancelledSet", String(candidate)),
-          redis.sismember(prefix + "missedSet", String(candidate)),
-          redis.sismember(prefix + "attendedSet", String(candidate)),
-          redis.sismember(prefix + "skippedSet", String(candidate)),
-        ]);
-        if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
-          p = candidate;
-          break;
-        }
-        await redis.srem(prefix + "prioritySet", String(candidate));
-      }
-    }
-    let isPriorityCall = false;
-    if (p) {
-      isPriorityCall = await redis.sismember(prefix + "prioritySet", String(p));
+    // 1) preferencial pendente; 2) normal pendente
+    let ticketId = await pickPendingFromList(redis, prefix, prefList);
+    if (!ticketId) ticketId = await pickPendingFromList(redis, prefix, normList);
+
+    if (!ticketId) {
+      return { statusCode: 200, body: JSON.stringify({ ok: true, message: 'Sem tickets pendentes' }) };
     }
 
-    const counterKey = prefix + "callCounter";
-    const prevCounter = Number(await redis.get(counterKey) || 0);
-
-    if (isPriorityCall && currentCallPrev && currentCallPrev !== Number(p)) {
-      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
-        redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
-        redis.sismember(prefix + "missedSet", String(currentCallPrev)),
-        redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
-        redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
-      ]);
-      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
-        await redis.lpush(prefix + "priorityQueue", currentCallPrev);
-        await redis.set(requeuedPrevKey, currentCallPrev);
-      }
-    }
-
-    // Próximo a chamar
-    let next;
-    if (paramNum) {
-      next = Number(paramNum);
-      // Não atualiza o contador sequencial para manter a ordem quando
-      // um número é chamado manualmente
-      await redis.srem(prefix + "cancelledSet", String(next));
-      await redis.srem(prefix + "missedSet", String(next));
-      await redis.srem(prefix + "skippedSet", String(next));
-    } else if (p) {
-      next = Number(p);
-      await redis.srem(prefix + "cancelledSet", String(next));
-      await redis.srem(prefix + "missedSet", String(next));
-      await redis.srem(prefix + "skippedSet", String(next));
-    } else {
-      next = await redis.incr(counterKey);
-      const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
-      // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
-      while (
-        next <= ticketCount &&
-        ((await redis.sismember(prefix + "cancelledSet", String(next))) ||
-         (await redis.sismember(prefix + "missedSet", String(next))) ||
-         (await redis.sismember(prefix + "skippedSet", String(next))))
-      ) {
-        next = await redis.incr(counterKey);
-      }
-    }
-
-    await redis.srem(prefix + "offHoursSet", String(next));
-
-    // Quando a chamada é automática (Próximo), quem perde a vez é o último
-    // número chamado nessa sequência (prevCounter), independente de haver
-    // chamadas manuais entre eles. Assim tickets com ou sem nome são
-    // tratados igualmente. Se o ticket anterior foi reordenado devido a
-    // uma chamada preferencial, ignora esta etapa para evitar cancelamento
-    // indevido.
-    if (!paramNum && !p && prevCounter && next > prevCounter && currentCallPrev === prevCounter) {
-      const rqPrev = await redis.get(requeuedPrevKey);
-      if (rqPrev && Number(rqPrev) === prevCounter) {
-        await redis.del(requeuedPrevKey);
-      } else {
-        const [isCancelled, isMissed, isAttended, isSkipped, joinPrev, calledPrev] = await Promise.all([
-          redis.sismember(prefix + "cancelledSet", String(prevCounter)),
-          redis.sismember(prefix + "missedSet", String(prevCounter)),
-          redis.sismember(prefix + "attendedSet", String(prevCounter)),
-          redis.sismember(prefix + "skippedSet", String(prevCounter)),
-          redis.get(prefix + `ticketTime:${prevCounter}`),
-          redis.get(prefix + `calledTime:${prevCounter}`)
-        ]);
-        if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev && calledPrev) {
-          const calledTs = Number(calledPrev || 0);
-          const dur = calledTs ? Date.now() - calledTs : 0;
-          const waitPrev = Number((await redis.get(prefix + `wait:${prevCounter}`)) || 0);
-          await redis.sadd(prefix + "missedSet", String(prevCounter));
-          const missTs = Date.now();
-          // registra o momento em que o ticket perdeu a vez
-          await redis.set(prefix + `cancelledTime:${prevCounter}`, missTs);
-          await redis.lpush(
-            prefix + "log:cancelled",
-            JSON.stringify({ ticket: prevCounter, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
-          );
-          await redis.ltrim(prefix + "log:cancelled", 0, 999);
-          await redis.expire(prefix + "log:cancelled", LOG_TTL);
-          await redis.del(prefix + `wait:${prevCounter}`);
-        }
-      }
-    }
-
-    const ts = Date.now();
-    let wait = 0;
-    const joinTs = await redis.get(prefix + `ticketTime:${next}`);
-    if (joinTs) {
-      wait = ts - Number(joinTs);
-      // mantém ticketTime registrado para o relatório
-    }
-    // Atualiza dados da chamada em um único comando
-    const updateData = {
-      [prefix + `wait:${next}`]: wait,
-      [prefix + "currentCall"]: next,
-      [prefix + "currentCallTs"]: ts,
-      [prefix + `calledTime:${next}`]: ts,
-    };
-    if (identifier) {
-      updateData[prefix + `identifier:${next}`] = identifier;
-      updateData[prefix + "currentAttendant"] = identifier;
-    }
-    await redis.mset(updateData);
-
-    const name = await redis.hget(prefix + "ticketNames", String(next));
-
-    // Log de chamada
-    await redis.lpush(
-      prefix + "log:called",
-      JSON.stringify({ ticket: next, attendant: identifier, identifier, ts, wait, name })
-    );
-    await redis.ltrim(prefix + "log:called", 0, 999);
-    await redis.expire(prefix + "log:called", LOG_TTL);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ called: next, attendant: identifier, identifier, ts, wait, name }),
-    };
-  } catch (error) {
-    return errorHandler(error);
+    await callTicket(redis, prefix, ticketId);
+    return { statusCode: 200, body: JSON.stringify({ ok: true, ticket_id: ticketId }) };
+  } catch (err) {
+    console.error('chamar error', err);
+    return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Erro interno' }) };
   }
 }
+
