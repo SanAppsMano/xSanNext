@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuaVez Monitor</title>
+  <link rel="stylesheet" href="css/monitor.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0N82XM9NM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E0N82XM9NM');
+  </script>
+</head>
+<body>
+  <div class="container">
+  <div id="company-name" class="company-name"></div>
+    <h1>Chamando</h1>
+    <div id="current" class="number">—</div>
+    <div id="current-name" class="name"></div>
+    <div id="current-id" class="id-label"></div>
+  </div>
+  <div id="unlock-overlay">Clique ou toque para ativar o som</div>
+   <audio id="alert-sound" preload="auto" src="/sounds/alert.mp3"></audio>
+  <script src="js/monitor.js"></script>
+</body>
+</html>
