@@ -18,15 +18,28 @@ export async function handler(event) {
     return { statusCode: 404, body: "Invalid link" };
   }
   const prefix = `tenant:${tenantId}:`;
-  const { clientId, reason = "client", duration } = JSON.parse(event.body || "{}");
+  const { clientId, ticket, reason = "client", duration } = JSON.parse(event.body || "{}");
 
-  // Recupera e remove ticket do cliente
-  const ticketNum = await redis.get(prefix + `ticket:${clientId}`);
-  await redis.del(prefix + `ticket:${clientId}`);
+  // Recupera número do ticket via clientId ou parâmetro direto
+  let ticketNum = null;
+  if (ticket) {
+    ticketNum = Number(ticket);
+  } else if (clientId) {
+    ticketNum = await redis.get(prefix + `ticket:${clientId}`);
+    await redis.del(prefix + `ticket:${clientId}`);
+  }
   if (ticketNum) {
     await redis.srem(prefix + "offHoursSet", String(ticketNum));
     await redis.lrem(prefix + "priorityQueue", 0, ticketNum);
     await redis.srem(prefix + "prioritySet", String(ticketNum));
+    const currentCallRaw = await redis.get(prefix + "currentCall");
+    if (Number(currentCallRaw || 0) === Number(ticketNum)) {
+      await redis.mset({
+        [prefix + "currentCall"]: 0,
+        [prefix + "currentCallTs"]: 0,
+      });
+      await redis.del(prefix + "currentAttendant");
+    }
   }
 
   let wait = 0;

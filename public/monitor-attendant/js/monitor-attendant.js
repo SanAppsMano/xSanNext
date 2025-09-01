@@ -366,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updatePdfBtnVisibility();
 
   let currentCallNum = 0; // último número chamado exibido
+  let currentCallTs  = 0; // timestamp da chamada atual
   let ticketNames    = {};
   let ticketCounter  = 0;
   let callCounter    = 0;
@@ -534,6 +535,7 @@ function startBouncingCompanyName(text) {
   /** Atualiza chamada */
   function updateCall(num, attendantId) {
     currentCallNum = num;
+    currentCallTs  = num > 0 ? Date.now() : 0;
     let text = num > 0 ? num : '–';
     const nm = ticketNames[num];
     if (nm) text += ` - ${nm}`;
@@ -597,7 +599,8 @@ function startBouncingCompanyName(text) {
         waiting = 0,
         names = {},
         logoutVersion: srvLogoutVersion = 0,
-        priorityNumbers = []
+        priorityNumbers = [],
+        timestamp: callTs = 0
       } = await res.json();
 
       if (logoutVersion !== null && srvLogoutVersion !== logoutVersion) {
@@ -610,6 +613,7 @@ function startBouncingCompanyName(text) {
       localStorage.setItem('logoutVersion', String(logoutVersion));
 
       currentCallNum  = currentCall;
+      currentCallTs   = callTs;
       ticketCounter   = tc;
       callCounter     = cCtr;
       ticketNames     = names || {};
@@ -1123,19 +1127,45 @@ function startBouncingCompanyName(text) {
     });
 
     btnNext.onclick = async () => {
-      if (currentCallNum > 0 &&
-          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
-        return;
+      if (currentCallNum > 0) {
+        const proceed = confirm(
+          'Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?'
+        );
+        if (!proceed) {
+          return;
+        }
+        try {
+          await fetch(`/.netlify/functions/cancelar?t=${t}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ticket: currentCallNum,
+              reason: 'missed',
+              duration: currentCallTs ? Date.now() - currentCallTs : 0
+            })
+          });
+        } catch (e) {
+          console.error('Erro ao marcar ticket como perdido', e);
+        }
       }
       const id = attendantInput.value.trim();
-      const res = await fetch('/.netlify/functions/chamar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: t })
-      });
-      const data = await res.json();
-      updateCall(Number(data.ticket_id || 0), id);
-      refreshAll(t);
+      try {
+        const res = await fetch('/.netlify/functions/chamar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: t })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ticket_id) {
+          alert(data.error || data.message || 'Sem tickets pendentes');
+          return;
+        }
+        updateCall(Number(data.ticket_id), id);
+        refreshAll(t);
+      } catch (e) {
+        console.error('Erro ao chamar próximo ticket', e);
+        alert('Erro de conexão ao chamar o próximo ticket.');
+      }
     };
     btnRepeat.onclick = async () => {
       if (!currentCallNum) return;
