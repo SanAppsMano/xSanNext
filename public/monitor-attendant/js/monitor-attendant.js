@@ -378,6 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let missedCount    = 0;
   let attendedNums   = [];
   let attendedCount  = 0;
+  let priorityNums   = [];
+  let prioritySet    = new Set();
   let pollingId;
   const fmtTime     = ts => new Date(ts).toLocaleString('pt-BR');
   const msToHms = (ms) => {
@@ -532,7 +534,11 @@ function startBouncingCompanyName(text) {
   /** Atualiza chamada */
   function updateCall(num, attendantId) {
     currentCallNum = num;
-    currentCallEl.textContent = num > 0 ? num : '–';
+    let text = num > 0 ? num : '–';
+    const nm = ticketNames[num];
+    if (nm) text += ` - ${nm}`;
+    if (prioritySet.has(num)) text += ' (Preferencial)';
+    currentCallEl.textContent = text;
     currentIdEl.textContent   = attendantId || '';
   }
 
@@ -554,6 +560,7 @@ function startBouncingCompanyName(text) {
       const li = document.createElement('li');
       const nm = ticketNames[n];
       let text = nm ? `${n} - ${nm}` : String(n);
+      text += prioritySet.has(n) ? ' - Preferencial' : ' - Normal';
       if (offHoursSet.has(n)) text += ' - Fora do horário';
       li.textContent = text;
       queueListEl.appendChild(li);
@@ -589,7 +596,8 @@ function startBouncingCompanyName(text) {
         attendedCount: ac = 0,
         waiting = 0,
         names = {},
-        logoutVersion: srvLogoutVersion = 0
+        logoutVersion: srvLogoutVersion = 0,
+        priorityNumbers = []
       } = await res.json();
 
       if (logoutVersion !== null && srvLogoutVersion !== logoutVersion) {
@@ -611,13 +619,17 @@ function startBouncingCompanyName(text) {
       skippedNums     = skippedNumbers.map(Number);
       offHoursNums    = offHoursNumbers.map(Number);
       offHoursSet     = new Set(offHoursNums);
+      priorityNums    = priorityNumbers.map(Number);
+      prioritySet     = new Set(priorityNums);
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
 
       const cName = ticketNames[currentCall];
-      currentCallEl.textContent = currentCall > 0 ? currentCall : '–';
-      if (cName) currentCallEl.textContent += ` - ${cName}`;
+      let cText = currentCall > 0 ? currentCall : '–';
+      if (cName) cText += ` - ${cName}`;
+      if (prioritySet.has(currentCall)) cText += ' (Preferencial)';
+      currentCallEl.textContent = cText;
       currentIdEl.textContent   = attendantId || '';
       waitingEl.textContent     = waiting;
 

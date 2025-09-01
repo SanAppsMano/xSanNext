@@ -25,6 +25,8 @@ export async function handler(event) {
   await redis.del(prefix + `ticket:${clientId}`);
   if (ticketNum) {
     await redis.srem(prefix + "offHoursSet", String(ticketNum));
+    await redis.lrem(prefix + "priorityQueue", 0, ticketNum);
+    await redis.srem(prefix + "prioritySet", String(ticketNum));
   }
 
   let wait = 0;
