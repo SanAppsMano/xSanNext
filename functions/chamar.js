@@ -22,10 +22,23 @@ export async function handler(event) {
     const prefix    = `tenant:${tenantId}:`;
     const paramNum  = url.searchParams.get("num");
     const identifier = url.searchParams.get("id") || "";
+    const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
     const p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
 
     const counterKey = prefix + "callCounter";
     const prevCounter = Number(await redis.get(counterKey) || 0);
+
+    if (p && currentCallPrev && currentCallPrev !== Number(p)) {
+      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
+        redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
+        redis.sismember(prefix + "missedSet", String(currentCallPrev)),
+        redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
+        redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+      ]);
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
+        await redis.lpush(prefix + "priorityQueue", currentCallPrev);
+      }
+    }
 
     // Próximo a chamar
     let next;
