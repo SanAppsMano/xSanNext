@@ -12,6 +12,15 @@ export async function handler(event) {
       return { statusCode: 400, body: "Missing tenantId" };
     }
 
+    let body = {};
+    if (event.body) {
+      try {
+        body = JSON.parse(event.body);
+      } catch {}
+    }
+    const priorityParam = body.priority ?? url.searchParams.get("priority");
+    const priority = priorityParam === true || priorityParam === "true";
+
     const redis  = Redis.fromEnv();
     const [pwHash, monitor, schedRaw] = await redis.mget(
       `tenant:${tenantId}:pwHash`,
@@ -59,6 +68,11 @@ export async function handler(event) {
       [prefix + `ticket:${clientId}`]: ticketNumber,
       [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
     });
+
+    if (priority) {
+      await redis.rpush(prefix + "priorityQueue", ticketNumber);
+      await redis.sadd(prefix + "prioritySet", String(ticketNumber));
+    }
 
     const isOffHours = !withinSchedule(schedule);
     if (isOffHours) {
