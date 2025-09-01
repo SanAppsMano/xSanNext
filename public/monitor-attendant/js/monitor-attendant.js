@@ -1123,19 +1123,32 @@ function startBouncingCompanyName(text) {
     });
 
     btnNext.onclick = async () => {
-      if (currentCallNum > 0 &&
-          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+      if (
+        currentCallNum > 0 &&
+        !confirm(
+          'Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?'
+        )
+      ) {
         return;
       }
       const id = attendantInput.value.trim();
-      const res = await fetch('/.netlify/functions/chamar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: t })
-      });
-      const data = await res.json();
-      updateCall(Number(data.ticket_id || 0), id);
-      refreshAll(t);
+      try {
+        const res = await fetch('/.netlify/functions/chamar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: t })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ticket_id) {
+          alert(data.error || data.message || 'Sem tickets pendentes');
+          return;
+        }
+        updateCall(Number(data.ticket_id), id);
+        refreshAll(t);
+      } catch (e) {
+        console.error('Erro ao chamar próximo ticket', e);
+        alert('Erro de conexão ao chamar o próximo ticket.');
+      }
     };
     btnRepeat.onclick = async () => {
       if (!currentCallNum) return;
