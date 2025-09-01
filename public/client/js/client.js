@@ -259,23 +259,6 @@ async function checkStatus() {
     return;
   }
 
-  if (currentCall > ticketNumber) {
-    const duration = callStartTs ? Date.now() - callStartTs : 0;
-    const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId, reason: "missed", duration })
-    });
-    if (!res) return;
-    let msg = "Você perdeu a vez.";
-    try {
-      const data = await res.json();
-      if (data.alreadyAttended) msg = "Atendimento concluído.";
-    } catch {}
-    handleExit(msg);
-    return;
-  }
-
   if (currentCall !== ticketNumber) {
     const cname = names[currentCall];
     statusEl.textContent = cname ? `Chamando: ${currentCall} - ${cname} (${attendant})` : `Chamando: ${currentCall} (${attendant})`;

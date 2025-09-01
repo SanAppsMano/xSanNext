@@ -1128,18 +1128,25 @@ function startBouncingCompanyName(text) {
         return;
       }
       const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}`;
-      if (id) url += `&id=${encodeURIComponent(id)}`;
-      const { called, attendant } = await (await fetch(url)).json();
-      updateCall(called, attendant);
+      const res = await fetch('/.netlify/functions/chamar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t })
+      });
+      const data = await res.json();
+      updateCall(Number(data.ticket_id || 0), id);
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
+      if (!currentCallNum) return;
       const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
-      if (id) url += `&id=${encodeURIComponent(id)}`;
-      const { called, attendant } = await (await fetch(url)).json();
-      updateCall(called, attendant);
+      const res = await fetch('/.netlify/functions/chamar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t, ticket_id: currentCallNum })
+      });
+      const data = await res.json();
+      updateCall(Number(data.ticket_id || 0), id);
       refreshAll(t);
     };
     btnAttended.onclick = async () => {
