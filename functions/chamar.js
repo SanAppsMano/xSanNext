@@ -24,7 +24,26 @@ export async function handler(event) {
     const identifier = url.searchParams.get("id") || "";
     const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
     const requeuedPrevKey = prefix + "requeuedPrev";
-    const p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
+
+    let p = null;
+    if (!paramNum) {
+      // remove entradas inválidas da fila preferencial
+      while (true) {
+        const candidate = await redis.lpop(prefix + "priorityQueue");
+        if (!candidate) break;
+        const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
+          redis.sismember(prefix + "cancelledSet", String(candidate)),
+          redis.sismember(prefix + "missedSet", String(candidate)),
+          redis.sismember(prefix + "attendedSet", String(candidate)),
+          redis.sismember(prefix + "skippedSet", String(candidate)),
+        ]);
+        if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
+          p = candidate;
+          break;
+        }
+        await redis.srem(prefix + "prioritySet", String(candidate));
+      }
+    }
     let isPriorityCall = false;
     if (p) {
       isPriorityCall = await redis.sismember(prefix + "prioritySet", String(p));
@@ -82,7 +101,7 @@ export async function handler(event) {
     // tratados igualmente. Se o ticket anterior foi reordenado devido a
     // uma chamada preferencial, ignora esta etapa para evitar cancelamento
     // indevido.
-    if (!paramNum && !p && prevCounter && next > prevCounter) {
+    if (!paramNum && !p && prevCounter && next > prevCounter && currentCallPrev === prevCounter) {
       const rqPrev = await redis.get(requeuedPrevKey);
       if (rqPrev && Number(rqPrev) === prevCounter) {
         await redis.del(requeuedPrevKey);
