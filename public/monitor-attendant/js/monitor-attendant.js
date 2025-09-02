@@ -325,8 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Botão de relatório oculto até haver dados
-  btnReport.hidden = true;
+  // Botão de relatório desabilitado até haver dados
+  btnReport.disabled = true;
 
   // QR Interaction setup
   const qrContainer    = document.getElementById('qrcode');
@@ -677,8 +677,8 @@ function startBouncingCompanyName(text) {
 
       updateQueueList();
 
-      // Exibe o botão de relatório apenas se houver tickets registrados
-      btnReport.hidden = ticketCounter === 0;
+      // Desabilita o botão de relatório se não houver tickets registrados
+      btnReport.disabled = ticketCounter === 0;
       updateTicketSetter();
     } catch (e) {
       console.error(e);

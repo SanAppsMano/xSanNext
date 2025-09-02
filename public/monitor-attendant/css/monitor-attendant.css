@@ -258,13 +258,30 @@ body {
 
 .btn {
   width: 100%;
-  padding: 0.75rem;
+  padding: 1rem;
   margin-bottom: 0.5rem;
-  font-size: 1rem;
+  font-size: 1.1rem;
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn-row .btn {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+/* visual feedback for disabled buttons */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .btn-primary {
   background: var(--secondary);
