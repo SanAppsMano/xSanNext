@@ -24,6 +24,9 @@ export async function handler(event) {
     const priorityOnly = url.searchParams.get("priority") === "1";
     const identifier = url.searchParams.get("id") || "";
     const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
+    const currentPriorityPrev = Number(
+      (await redis.get(prefix + "currentCallPriority")) || 0
+    );
     let p = null;
     if (!paramNum && priorityOnly) {
       p = await redis.lpop(prefix + "priorityQueue");
@@ -39,18 +42,59 @@ export async function handler(event) {
       isPriorityCall = await redis.sismember(prefix + "prioritySet", String(paramNum));
     }
 
+    const isRepeat = paramNum && Number(paramNum) === currentCallPrev;
+
     const counterKey = prefix + "callCounter";
-    const prevCounter = Number(await redis.get(counterKey) || 0);
+    const prevCounter = Number((await redis.get(counterKey)) || 0);
+
+    // Se outro preferencial for chamado enquanto um preferencial está em atendimento,
+    // o atual perde a vez
+    if (isPriorityCall && currentPriorityPrev === 1 && currentCallPrev && !isRepeat) {
+      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
+        await Promise.all([
+          redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
+          redis.sismember(prefix + "missedSet", String(currentCallPrev)),
+          redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
+          redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+          redis.get(prefix + `ticketTime:${currentCallPrev}`),
+        ]);
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
+        const calledTs = Number(
+          (await redis.get(prefix + `calledTime:${currentCallPrev}`)) || 0
+        );
+        const dur = calledTs ? Date.now() - calledTs : 0;
+        const waitPrev = Number(
+          (await redis.get(prefix + `wait:${currentCallPrev}`)) || 0
+        );
+        await redis.sadd(prefix + "missedSet", String(currentCallPrev));
+        const missTs = Date.now();
+        await redis.set(prefix + `cancelledTime:${currentCallPrev}`, missTs);
+        await redis.lpush(
+          prefix + "log:cancelled",
+          JSON.stringify({
+            ticket: currentCallPrev,
+            ts: missTs,
+            reason: "missed",
+            duration: dur,
+            wait: waitPrev,
+          })
+        );
+        await redis.ltrim(prefix + "log:cancelled", 0, 999);
+        await redis.expire(prefix + "log:cancelled", LOG_TTL);
+        await redis.del(prefix + `wait:${currentCallPrev}`);
+      }
+    }
 
     // Em chamadas preferenciais, mantém o ticket atual na fila normal
     if (isPriorityCall && prevCounter === currentCallPrev && prevCounter > 0) {
-      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
-        redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
-        redis.sismember(prefix + "missedSet", String(currentCallPrev)),
-        redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
-        redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
-        redis.get(prefix + `ticketTime:${currentCallPrev}`),
-      ]);
+      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
+        await Promise.all([
+          redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
+          redis.sismember(prefix + "missedSet", String(currentCallPrev)),
+          redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
+          redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+          redis.get(prefix + `ticketTime:${currentCallPrev}`),
+        ]);
       if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
         await redis.decr(counterKey);
       }
@@ -166,6 +210,7 @@ export async function handler(event) {
       [prefix + "currentCall"]: next,
       [prefix + "currentCallTs"]: ts,
       [prefix + `calledTime:${next}`]: ts,
+      [prefix + "currentCallPriority"]: isPriorityCall ? 1 : 0,
     };
     if (identifier) {
       updateData[prefix + `identifier:${next}`] = identifier;
