@@ -159,6 +159,9 @@ export async function handler(event) {
         return { statusCode: 400, body: "Ticket não está na fila" };
       }
       await redis.srem(prefix + "skippedSet", String(next));
+      if (isPriorityCall) {
+        await redis.lrem(prefix + "priorityQueue", 0, String(next));
+      }
     } else if (p) {
       while (p) {
         const candidate = Number(p);
