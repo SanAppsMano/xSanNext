@@ -1147,11 +1147,6 @@ function startBouncingCompanyName(text) {
       if (!res.ok) {
         const msg = await res.text();
         if (currentCallNum > 0 && msg.startsWith('Sem tickets')) {
-          await fetch(`/.netlify/functions/cancelar?t=${t}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ticket: currentCallNum, reason: 'missed' })
-          });
           updateCall(0, '');
         }
         alert(msg);
@@ -1174,11 +1169,6 @@ function startBouncingCompanyName(text) {
       if (!res.ok) {
         const msg = await res.text();
         if (currentCallNum > 0 && msg.startsWith('Sem tickets')) {
-          await fetch(`/.netlify/functions/cancelar?t=${t}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ticket: currentCallNum, reason: 'missed' })
-          });
           updateCall(0, '');
         }
         alert(msg);
