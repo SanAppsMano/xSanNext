@@ -47,20 +47,22 @@ export async function handler(event) {
     }
   }
 
-  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw] =
+  const [currentCallRaw, callCounterRaw, ticketCounterRaw, attendantRaw, timestampRaw, logoutVersionRaw, currentCallPriorityRaw] =
     await redis.mget(
       prefix + "currentCall",
       prefix + "callCounter",
       prefix + "ticketCounter",
       prefix + "currentAttendant",
       prefix + "currentCallTs",
-      prefix + "logoutVersion"
+      prefix + "logoutVersion",
+      prefix + "currentCallPriority"
     );
-  const currentCall   = Number(currentCallRaw || 0);
-  const callCounter   = Number(callCounterRaw || 0);
-  const ticketCounter = Number(ticketCounterRaw || 0);
-  const attendant     = attendantRaw || "";
-  const timestamp     = Number(timestampRaw || 0);
+  const currentCall          = Number(currentCallRaw || 0);
+  const callCounter          = Number(callCounterRaw || 0);
+  const ticketCounter        = Number(ticketCounterRaw || 0);
+  const attendant            = attendantRaw || "";
+  const timestamp            = Number(timestampRaw || 0);
+  const currentCallPriority  = Number(currentCallPriorityRaw || 0);
   const [cancelledList, missedList, attendedList, skippedList, offHoursList, priorityList, nameMap] = await Promise.all([
     redis.smembers(prefix + "cancelledSet"),
     redis.smembers(prefix + "missedSet"),
@@ -130,6 +132,7 @@ export async function handler(event) {
       ticketCounter,
       attendant,
       timestamp,
+      currentCallPriority,
       cancelledCount,
       cancelledNumbers: cancelledNums,
       missedNumbers: missedNums,
