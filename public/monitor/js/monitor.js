@@ -104,6 +104,7 @@ async function fetchCurrent() {
     const currentEl = document.getElementById('current');
     const nameEl = document.getElementById('current-name');
     const idEl   = document.getElementById('current-id');
+    const priorityEl = document.getElementById('priority-label');
     const container = document.querySelector('.container');
     const name = names[currentCall];
     currentEl.textContent = currentCall;
@@ -114,6 +115,9 @@ async function fetchCurrent() {
     } else {
       currentEl.classList.remove('manual');
       nameEl.textContent = '';
+    }
+    if (priorityEl) {
+      priorityEl.textContent = currentCallPriority > 0 ? 'Preferencial' : '';
     }
     if (idEl) idEl.textContent = attendant || '';
     if (currentCall && (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId || currentCallPriority !== lastPriority)) {
