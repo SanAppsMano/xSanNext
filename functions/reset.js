@@ -37,6 +37,8 @@ export async function handler(event) {
     await redis.del(prefix + "offHoursSet");
     await redis.del(prefix + "priorityQueue");
     await redis.del(prefix + "prioritySet");
+    await redis.del(prefix + "requeuedPrevSet");
+    await redis.del(prefix + "requeuedPrev");
     await redis.del(prefix + "ticketNames");
     await redis.del(prefix + "log:entered");
     await redis.del(prefix + "log:called");
