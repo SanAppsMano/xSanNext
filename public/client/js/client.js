@@ -23,9 +23,9 @@ const statusEl   = document.getElementById("status");
 const btnCancel  = document.getElementById("btn-cancel");
 const btnCheck   = document.getElementById("btn-check");
 const btnSilence   = document.getElementById("btn-silence");
-const btnNormal    = document.getElementById("btn-normal");
-const btnPresencial = document.getElementById("btn-presencial");
-const overlay      = document.getElementById("overlay");
+const btnNormal      = document.getElementById("btn-normal");
+const btnPreferencial = document.getElementById("btn-preferencial");
+const overlay        = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
@@ -213,7 +213,7 @@ async function start(priority) {
 }
 
 btnNormal.addEventListener("click", () => start(false));
-btnPresencial.addEventListener("click", () => start(true));
+btnPreferencial.addEventListener("click", () => start(true));
 
 async function getTicket(priority = false) {
   const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}${priority ? '&priority=true' : ''}`);
@@ -221,8 +221,9 @@ async function getTicket(priority = false) {
   const data = await res.json();
   clientId     = data.clientId;
   ticketNumber = data.ticketNumber;
-  ticketEl.textContent  = ticketNumber;
+  ticketEl.textContent  = priority ? `P${ticketNumber}` : ticketNumber;
   statusEl.textContent  = "Aguardando chamada...";
+  if (priority) statusEl.textContent += " (Preferencial)";
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   callStartTs = 0;
