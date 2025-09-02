@@ -34,13 +34,14 @@ export async function handler(event) {
     const prevCounter = Number(await redis.get(counterKey) || 0);
 
     if (isPriorityCall && currentCallPrev && currentCallPrev !== Number(p)) {
-      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
+      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
         redis.sismember(prefix + "missedSet", String(currentCallPrev)),
         redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
         redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+        redis.get(prefix + `ticketTime:${currentCallPrev}`),
       ]);
-      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
         await redis.lpush(prefix + "priorityQueue", currentCallPrev);
         await redis.set(requeuedPrevKey, currentCallPrev);
       }
