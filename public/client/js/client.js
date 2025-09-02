@@ -21,7 +21,6 @@ if (empresa) {
 const ticketEl   = document.getElementById("ticket");
 const statusEl   = document.getElementById("status");
 const btnCancel  = document.getElementById("btn-cancel");
-const btnJoin    = document.getElementById("btn-join");
 const btnCheck   = document.getElementById("btn-check");
 const btnSilence   = document.getElementById("btn-silence");
 const btnNormal    = document.getElementById("btn-normal");
@@ -49,7 +48,6 @@ async function safeFetch(url, options) {
   const res = await fetch(url, options);
   if (res.status === 404 || res.status === 410) {
     handleExit('Procedimento inválido. Solicite um novo link ou QR.');
-    btnJoin.disabled = true;
     return null;
   }
   return res;
@@ -181,9 +179,8 @@ function handleExit(msg) {
   statusEl.classList.remove("blink");
   btnSilence.hidden = true;
   btnCancel.hidden = true;
-  btnJoin.hidden = false;
-  btnJoin.disabled = false;
   btnCheck.hidden = true;
+  overlay.style.display = "flex";
 }
 
 // AVISO AO RECARREGAR/FECHAR A PÁGINA
@@ -207,8 +204,7 @@ async function start(priority) {
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
   if ("Notification" in window) Notification.requestPermission();
-  overlay.remove();
-  btnJoin.hidden = true;
+  overlay.style.display = "none";
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   await fetchSchedule();
@@ -229,7 +225,6 @@ async function getTicket(priority = false) {
   statusEl.textContent  = "Aguardando chamada...";
   btnCancel.hidden = false;
   btnCancel.disabled = false;
-  btnJoin.hidden = true;
   callStartTs = 0;
   lastEventTs = 0;
   requestWakeLock();
@@ -420,14 +415,6 @@ btnCancel.addEventListener("click", async () => {
   releaseWakeLock();
   handleExit("Você saiu da fila.");
 });
-
-btnJoin.addEventListener("click", async () => {
-  btnJoin.disabled = true;
-  await getTicket(selectedPriority);
-  await fetchSchedule();
-  schedulePolling();
-});
-
 btnCheck.addEventListener("click", async () => {
   const originalText = btnCheck.textContent;
   btnCheck.disabled = true;
