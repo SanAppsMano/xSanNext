@@ -133,7 +133,7 @@ export async function handler(event) {
     // tratados igualmente. Se o ticket anterior foi reordenado devido a
     // uma chamada preferencial, ignora esta etapa para evitar cancelamento
     // indevido.
-    if (!paramNum && !p && prevCounter && next > prevCounter) {
+    if (!paramNum && !priorityOnly && prevCounter && next > prevCounter) {
       const wasRequeued = await redis.sismember(requeuedPrevSetKey, String(prevCounter));
       if (wasRequeued) {
         await redis.srem(requeuedPrevSetKey, String(prevCounter));
