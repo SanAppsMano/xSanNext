@@ -632,8 +632,9 @@ function startBouncingCompanyName(text) {
           !skippedNums.includes(n) &&
           !offHoursNums.includes(n)
         );
-        btnNextPriority.disabled = priorityWaiting.length === 0;
-        btnNextPriority.title = priorityWaiting.length ? '' : 'Sem tickets preferenciais na fila';
+        const hasPriority = priorityWaiting.length > 0 || prioritySet.has(currentCallNum);
+        btnNextPriority.disabled = !hasPriority;
+        btnNextPriority.title = hasPriority ? '' : 'Sem tickets preferenciais na fila';
       }
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
