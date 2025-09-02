@@ -23,12 +23,14 @@ const statusEl   = document.getElementById("status");
 const btnCancel  = document.getElementById("btn-cancel");
 const btnJoin    = document.getElementById("btn-join");
 const btnCheck   = document.getElementById("btn-check");
-const btnSilence = document.getElementById("btn-silence");
-const btnStart   = document.getElementById("btn-start");
-const overlay    = document.getElementById("overlay");
+const btnSilence   = document.getElementById("btn-silence");
+const btnNormal    = document.getElementById("btn-normal");
+const btnPresencial = document.getElementById("btn-presencial");
+const overlay      = document.getElementById("overlay");
 const alertSound = document.getElementById("alert-sound");
 
 let clientId, ticketNumber;
+let selectedPriority = false;
 let polling, alertInterval, resumeTimeout, countdownInterval;
 let lastEventTs = 0;
 let wakeLock = null;
@@ -200,8 +202,8 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && ticketNumber) requestWakeLock();
 });
 
-btnStart.addEventListener("click", async () => {
-  // som/vibração de teste
+async function start(priority) {
+  selectedPriority = priority;
   alertSound.play().then(() => alertSound.pause()).catch(()=>{});
   if (navigator.vibrate) navigator.vibrate(1);
   if ("Notification" in window) Notification.requestPermission();
@@ -210,12 +212,15 @@ btnStart.addEventListener("click", async () => {
   btnCancel.hidden = false;
   btnCancel.disabled = false;
   await fetchSchedule();
-  await getTicket();
+  await getTicket(priority);
   schedulePolling();
-});
+}
 
-async function getTicket() {
-  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}`);
+btnNormal.addEventListener("click", () => start(false));
+btnPresencial.addEventListener("click", () => start(true));
+
+async function getTicket(priority = false) {
+  const res = await safeFetch(`/.netlify/functions/entrar?t=${tenantId}${priority ? '&priority=true' : ''}`);
   if (!res) return;
   const data = await res.json();
   clientId     = data.clientId;
@@ -418,7 +423,7 @@ btnCancel.addEventListener("click", async () => {
 
 btnJoin.addEventListener("click", async () => {
   btnJoin.disabled = true;
-  await getTicket();
+  await getTicket(selectedPriority);
   await fetchSchedule();
   schedulePolling();
 });
