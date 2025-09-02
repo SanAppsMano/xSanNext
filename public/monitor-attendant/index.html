@@ -145,20 +145,25 @@
         Chamando: <span id="current-call">–</span>
         <small id="current-id" class="id-label"></small>
       </div>
-      <button id="btn-next" class="btn btn-primary">Próximo</button>
-      <button id="btn-next-priority" class="btn btn-warning">Próximo Preferencial</button>
-      <button id="btn-repeat" class="btn btn-secondary">Repetir</button>
-      <button id="btn-attended" class="btn btn-success">Atendido</button>
-
-      <button id="btn-new-manual" class="btn btn-secondary">Ticket</button>
-      <button id="btn-new-priority" class="btn btn-secondary">Ticket Preferencial</button>
-
+      <div class="btn-row">
+        <button id="btn-next" class="btn btn-primary">Próximo</button>
+        <button id="btn-next-priority" class="btn btn-warning">Próximo Preferencial</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-repeat" class="btn btn-secondary">Repetir</button>
+        <button id="btn-attended" class="btn btn-success">Atendido</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-new-manual" class="btn btn-secondary">Ticket</button>
+        <button id="btn-new-priority" class="btn btn-warning">Ticket Preferencial</button>
+      </div>
       <div class="status-info">
         Em espera: <span id="waiting-count">–</span> clientes
       </div>
-
-      <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
-      <button id="btn-report" class="btn btn-secondary">Relatório</button>
+      <div class="btn-row">
+        <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
+        <button id="btn-report" class="btn btn-secondary">Relatório</button>
+      </div>
     </section>
 
     <!-- Fila Virtual -->
