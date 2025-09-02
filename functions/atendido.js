@@ -53,6 +53,7 @@ export async function handler(event) {
   await redis.mset({
     [prefix + "currentCall"]: 0,
     [prefix + "currentCallTs"]: 0,
+    [prefix + "currentCallPriority"]: 0,
   });
   await redis.del(prefix + "currentAttendant");
 
