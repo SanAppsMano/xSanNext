@@ -547,7 +547,7 @@ function startBouncingCompanyName(text) {
     if (!queueListEl) return;
     queueListEl.innerHTML = '';
     const pending = [];
-    for (let i = callCounter + 1; i <= ticketCounter; i++) {
+    for (let i = 1; i <= ticketCounter; i++) {
       if (i === currentCallNum) continue;
       if (
         cancelledNums.includes(i) ||
@@ -555,6 +555,7 @@ function startBouncingCompanyName(text) {
         attendedNums.includes(i) ||
         skippedNums.includes(i)
       ) continue;
+      if (i <= callCounter && !prioritySet.has(i)) continue;
       pending.push(i);
     }
     pending.forEach(n => {
@@ -624,7 +625,7 @@ function startBouncingCompanyName(text) {
       prioritySet     = new Set(priorityNums);
       if (btnNextPriority) {
         const priorityWaiting = priorityNums.filter(n =>
-          n > callCounter &&
+          n !== currentCallNum &&
           !cancelledNums.includes(n) &&
           !missedNums.includes(n) &&
           !attendedNums.includes(n) &&
