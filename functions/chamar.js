@@ -21,12 +21,16 @@ export async function handler(event) {
     }
     const prefix    = `tenant:${tenantId}:`;
     const paramNum  = url.searchParams.get("num");
+    const priorityOnly = url.searchParams.get("priority") === "1";
     const identifier = url.searchParams.get("id") || "";
     const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
     const requeuedPrevKey = prefix + "requeuedPrev";
-    const p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
-    let isPriorityCall = false;
-    if (p) {
+    let p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
+    if (priorityOnly && !p) {
+      return { statusCode: 404, body: "Sem tickets preferenciais" };
+    }
+    let isPriorityCall = priorityOnly;
+    if (!isPriorityCall && p) {
       isPriorityCall = await redis.sismember(prefix + "prioritySet", String(p));
     }
 
@@ -34,13 +38,14 @@ export async function handler(event) {
     const prevCounter = Number(await redis.get(counterKey) || 0);
 
     if (isPriorityCall && currentCallPrev && currentCallPrev !== Number(p)) {
-      const [isCancelled, isMissed, isAttended, isSkipped] = await Promise.all([
+      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
         redis.sismember(prefix + "missedSet", String(currentCallPrev)),
         redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
         redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+        redis.get(prefix + `ticketTime:${currentCallPrev}`),
       ]);
-      if (!isCancelled && !isMissed && !isAttended && !isSkipped) {
+      if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
         await redis.lpush(prefix + "priorityQueue", currentCallPrev);
         await redis.set(requeuedPrevKey, currentCallPrev);
       }
@@ -50,20 +55,49 @@ export async function handler(event) {
     let next;
     if (paramNum) {
       next = Number(paramNum);
-      // Não atualiza o contador sequencial para manter a ordem quando
-      // um número é chamado manualmente
-      await redis.srem(prefix + "cancelledSet", String(next));
-      await redis.srem(prefix + "missedSet", String(next));
+      const [isCancelled, isMissed, isAttended, joinTs] = await Promise.all([
+        redis.sismember(prefix + "cancelledSet", String(next)),
+        redis.sismember(prefix + "missedSet", String(next)),
+        redis.sismember(prefix + "attendedSet", String(next)),
+        redis.get(prefix + `ticketTime:${next}`),
+      ]);
+      if (isCancelled || isMissed || isAttended || !joinTs) {
+        return { statusCode: 400, body: "Ticket não está na fila" };
+      }
       await redis.srem(prefix + "skippedSet", String(next));
     } else if (p) {
-      next = Number(p);
-      await redis.srem(prefix + "cancelledSet", String(next));
-      await redis.srem(prefix + "missedSet", String(next));
-      await redis.srem(prefix + "skippedSet", String(next));
-    } else {
+      while (p) {
+        const candidate = Number(p);
+        const [isCancelled, isMissed, isAttended, joinTs] = await Promise.all([
+          redis.sismember(prefix + "cancelledSet", String(candidate)),
+          redis.sismember(prefix + "missedSet", String(candidate)),
+          redis.sismember(prefix + "attendedSet", String(candidate)),
+          redis.get(prefix + `ticketTime:${candidate}`),
+        ]);
+        if (!isCancelled && !isMissed && !isAttended && joinTs) {
+          next = candidate;
+          await redis.srem(prefix + "skippedSet", String(next));
+          break;
+      }
+      await redis.srem(prefix + "prioritySet", String(candidate));
+      p = await redis.lpop(prefix + "priorityQueue");
+    }
+    if (next === undefined) {
+      if (priorityOnly) {
+        return { statusCode: 404, body: "Sem tickets preferenciais" };
+      }
       next = await redis.incr(counterKey);
-      const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
-      // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
+    }
+  } else {
+    if (priorityOnly) {
+      return { statusCode: 404, body: "Sem tickets preferenciais" };
+    }
+    next = await redis.incr(counterKey);
+  }
+
+    const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
+    // Se automático, pular tickets cancelados, perdidos ou pulados sem removê-los
+    if (!paramNum && (!p || next !== Number(p))) {
       while (
         next <= ticketCount &&
         ((await redis.sismember(prefix + "cancelledSet", String(next))) ||
@@ -72,6 +106,11 @@ export async function handler(event) {
       ) {
         next = await redis.incr(counterKey);
       }
+    }
+
+    if (next > ticketCount || !(await redis.get(prefix + `ticketTime:${next}`))) {
+      await redis.set(counterKey, prevCounter);
+      return { statusCode: 404, body: "Sem tickets na fila" };
     }
 
     await redis.srem(prefix + "offHoursSet", String(next));

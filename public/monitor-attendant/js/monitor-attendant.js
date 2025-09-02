@@ -144,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedCountEl  = document.getElementById('attended-count');
   const queueListEl    = document.getElementById('queue-list');
   const btnNext        = document.getElementById('btn-next');
+  const btnNextPriority= document.getElementById('btn-next-priority');
   const btnRepeat      = document.getElementById('btn-repeat');
   const btnAttended    = document.getElementById('btn-attended');
   const btnNewManual   = document.getElementById('btn-new-manual');
@@ -621,6 +622,18 @@ function startBouncingCompanyName(text) {
       offHoursSet     = new Set(offHoursNums);
       priorityNums    = priorityNumbers.map(Number);
       prioritySet     = new Set(priorityNums);
+      if (btnNextPriority) {
+        const priorityWaiting = priorityNums.filter(n =>
+          n > callCounter &&
+          !cancelledNums.includes(n) &&
+          !missedNums.includes(n) &&
+          !attendedNums.includes(n) &&
+          !skippedNums.includes(n) &&
+          !offHoursNums.includes(n)
+        );
+        btnNextPriority.disabled = priorityWaiting.length === 0;
+        btnNextPriority.title = priorityWaiting.length ? '' : 'Sem tickets preferenciais na fila';
+      }
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
@@ -1131,6 +1144,25 @@ function startBouncingCompanyName(text) {
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
       const { called, attendant } = await (await fetch(url)).json();
+      updateCall(called, attendant);
+      refreshAll(t);
+    };
+    btnNextPriority.onclick = async () => {
+      if (currentCallNum > 0 &&
+          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+        return;
+      }
+      const id = attendantInput.value.trim();
+      let url = `/.netlify/functions/chamar?t=${t}&priority=1`;
+      if (id) url += `&id=${encodeURIComponent(id)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const msg = await res.text();
+        alert(msg);
+        refreshAll(t);
+        return;
+      }
+      const { called, attendant } = await res.json();
       updateCall(called, attendant);
       refreshAll(t);
     };

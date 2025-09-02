@@ -10,7 +10,7 @@ Funções serverless e front-end para a fila virtual SuaVez.
 - Ativar notificações sonoras quando a chamada inicia.
 
 ### Para Atendentes
-- Painel de controle da fila com botões de Próximo, Repetir, Atendido e Ticket manual.
+- Painel de controle da fila com botões de Próximo, Próximo Preferencial, Repetir, Atendido e Ticket manual.
 - Opções administrativas como redefinir cadastro, espelhar monitor, editar horário, clonar atendente e trocar senha.
 - Geração de relatórios e exportação em PDF ou Excel.
 
