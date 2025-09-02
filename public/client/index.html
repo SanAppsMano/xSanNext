@@ -35,7 +35,21 @@
   </main>
 
   <div id="overlay">
-    <button id="btn-start">Toque para ativar alertas</button>
+    <div class="ticket-selection">
+      <div class="badge">Aguardando chamada</div>
+      <h2>Escolha o tipo de ticket</h2>
+      <div class="ticket-options">
+        <button class="ticket-option" id="btn-normal">
+          <span class="icon">👤</span>
+          <span>Normal</span>
+        </button>
+        <button class="ticket-option" id="btn-presencial">
+          <span class="icon">👤</span>
+          <span>Presencial</span>
+        </button>
+      </div>
+      <p class="hint">Toque em uma opção para continuar.</p>
+    </div>
   </div>
 
   <script src="js/client.js"></script>
