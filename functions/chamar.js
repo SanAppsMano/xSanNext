@@ -27,6 +27,8 @@ export async function handler(event) {
     const currentPriorityPrev = Number(
       (await redis.get(prefix + "currentCallPriority")) || 0
     );
+    const isRepeatingPriority =
+      paramNum !== null && Number(paramNum) === currentCallPrev;
     let p = null;
     if (!paramNum && priorityOnly) {
       p = await redis.lpop(prefix + "priorityQueue");
@@ -46,8 +48,13 @@ export async function handler(event) {
     const prevCounter = Number((await redis.get(counterKey)) || 0);
 
     // Se outro preferencial for chamado enquanto um preferencial está em atendimento,
-    // o atual perde a vez
-    if (isPriorityCall && currentPriorityPrev === 1 && currentCallPrev) {
+    // o atual perde a vez, exceto quando for uma repetição do mesmo ticket
+    if (
+      isPriorityCall &&
+      currentPriorityPrev === 1 &&
+      currentCallPrev &&
+      !isRepeatingPriority
+    ) {
       const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
         await Promise.all([
           redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
