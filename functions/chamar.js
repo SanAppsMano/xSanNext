@@ -33,7 +33,48 @@ export async function handler(event) {
     if (!paramNum && priorityOnly) {
       p = await redis.lpop(prefix + "priorityQueue");
       if (!p) {
-        return { statusCode: 404, body: "Sem tickets preferenciais" };
+        if (currentCallPrev) {
+          const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
+            await Promise.all([
+              redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
+              redis.sismember(prefix + "missedSet", String(currentCallPrev)),
+              redis.sismember(prefix + "attendedSet", String(currentCallPrev)),
+              redis.sismember(prefix + "skippedSet", String(currentCallPrev)),
+              redis.get(prefix + `ticketTime:${currentCallPrev}`),
+            ]);
+          if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
+            const calledTs = Number(
+              (await redis.get(prefix + `calledTime:${currentCallPrev}`)) || 0
+            );
+            const dur = calledTs ? Date.now() - calledTs : 0;
+            const waitPrev = Number(
+              (await redis.get(prefix + `wait:${currentCallPrev}`)) || 0
+            );
+            await redis.sadd(prefix + "missedSet", String(currentCallPrev));
+            const missTs = Date.now();
+            await redis.set(prefix + `cancelledTime:${currentCallPrev}`, missTs);
+            await redis.lpush(
+              prefix + "log:cancelled",
+              JSON.stringify({
+                ticket: currentCallPrev,
+                ts: missTs,
+                reason: "missed",
+                duration: dur,
+                wait: waitPrev,
+              })
+            );
+            await redis.ltrim(prefix + "log:cancelled", 0, 999);
+            await redis.expire(prefix + "log:cancelled", LOG_TTL);
+            await redis.del(prefix + `wait:${currentCallPrev}`);
+          }
+          await redis.mset({
+            [prefix + "currentCall"]: 0,
+            [prefix + "currentCallTs"]: 0,
+            [prefix + "currentCallPriority"]: 0,
+          });
+          await redis.del(prefix + "currentAttendant");
+        }
+        return { statusCode: 404, body: "Sem tickets na fila" };
       }
     }
     let isPriorityCall = priorityOnly;
@@ -51,7 +92,6 @@ export async function handler(event) {
     // o atual perde a vez, exceto quando for uma repetição do mesmo ticket
     if (
       isPriorityCall &&
-      currentPriorityPrev === 1 &&
       currentCallPrev &&
       !isRepeatingPriority
     ) {
