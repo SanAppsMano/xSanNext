@@ -42,6 +42,9 @@ export async function handler(event) {
     if (!isPriorityCall && p) {
       isPriorityCall = await redis.sismember(prefix + "prioritySet", String(p));
     }
+    if (!isPriorityCall && paramNum) {
+      isPriorityCall = await redis.sismember(prefix + "prioritySet", String(paramNum));
+    }
 
     const counterKey = prefix + "callCounter";
     const prevCounter = Number(await redis.get(counterKey) || 0);
