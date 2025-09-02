@@ -1143,7 +1143,14 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
-      const { called, attendant } = await (await fetch(url)).json();
+      const res = await fetch(url);
+      if (!res.ok) {
+        const msg = await res.text();
+        alert(msg);
+        refreshAll(t);
+        return;
+      }
+      const { called, attendant } = await res.json();
       updateCall(called, attendant);
       refreshAll(t);
     };

@@ -25,9 +25,12 @@ export async function handler(event) {
     const identifier = url.searchParams.get("id") || "";
     const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
     const requeuedPrevKey = prefix + "requeuedPrev";
-    let p = paramNum ? null : await redis.lpop(prefix + "priorityQueue");
-    if (priorityOnly && !p) {
-      return { statusCode: 404, body: "Sem tickets preferenciais" };
+    let p = null;
+    if (!paramNum && priorityOnly) {
+      p = await redis.lpop(prefix + "priorityQueue");
+      if (!p) {
+        return { statusCode: 404, body: "Sem tickets preferenciais" };
+      }
     }
     let isPriorityCall = priorityOnly;
     if (!isPriorityCall && p) {
