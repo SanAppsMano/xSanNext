@@ -194,13 +194,14 @@ export async function handler(event) {
     }
 
     const ticketCount = Number(await redis.get(prefix + "ticketCounter") || 0);
-    // Se automático, pular tickets cancelados, perdidos, pulados ou prioritários sem removê-los
+    // Se automático, pular tickets cancelados, perdidos, atendidos, pulados ou prioritários sem removê-los
     if (!paramNum && (!p || next !== Number(p))) {
       while (
         next <= ticketCount &&
         (
           (await redis.sismember(prefix + "cancelledSet", String(next))) ||
           (await redis.sismember(prefix + "missedSet", String(next))) ||
+          (await redis.sismember(prefix + "attendedSet", String(next))) ||
           (await redis.sismember(prefix + "skippedSet", String(next))) ||
           (!priorityOnly && (await redis.sismember(prefix + "prioritySet", String(next))))
         )
