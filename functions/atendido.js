@@ -26,6 +26,7 @@ export async function handler(event) {
 
   const ticketStr = String(ticket);
   await redis.sadd(prefix + "attendedSet", ticketStr);
+  await redis.srem(prefix + "prioritySet", ticketStr);
   await redis.srem(prefix + "cancelledSet", ticketStr);
   await redis.srem(prefix + "missedSet", ticketStr);
 
