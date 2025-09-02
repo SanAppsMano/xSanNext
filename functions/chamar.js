@@ -24,7 +24,13 @@ export async function handler(event) {
     const priorityOnly = url.searchParams.get("priority") === "1";
     const identifier = url.searchParams.get("id") || "";
     const currentCallPrev = Number(await redis.get(prefix + "currentCall") || 0);
-    const requeuedPrevKey = prefix + "requeuedPrev";
+    const requeuedPrevSetKey = prefix + "requeuedPrevSet";
+    const legacyRequeuedKey = prefix + "requeuedPrev";
+    const legacyRequeued = await redis.get(legacyRequeuedKey);
+    if (legacyRequeued) {
+      await redis.sadd(requeuedPrevSetKey, legacyRequeued);
+      await redis.del(legacyRequeuedKey);
+    }
     let p = null;
     if (!paramNum && priorityOnly) {
       p = await redis.lpop(prefix + "priorityQueue");
@@ -50,7 +56,7 @@ export async function handler(event) {
       ]);
       if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
         await redis.lpush(prefix + "priorityQueue", currentCallPrev);
-        await redis.set(requeuedPrevKey, currentCallPrev);
+        await redis.sadd(requeuedPrevSetKey, String(currentCallPrev));
       }
     }
 
@@ -128,9 +134,9 @@ export async function handler(event) {
     // uma chamada preferencial, ignora esta etapa para evitar cancelamento
     // indevido.
     if (!paramNum && !p && prevCounter && next > prevCounter) {
-      const rqPrev = await redis.get(requeuedPrevKey);
-      if (rqPrev && Number(rqPrev) === prevCounter) {
-        await redis.del(requeuedPrevKey);
+      const wasRequeued = await redis.sismember(requeuedPrevSetKey, String(prevCounter));
+      if (wasRequeued) {
+        await redis.srem(requeuedPrevSetKey, String(prevCounter));
       } else {
         const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
           redis.sismember(prefix + "cancelledSet", String(prevCounter)),
