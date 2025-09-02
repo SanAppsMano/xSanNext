@@ -10,9 +10,10 @@ if (empresa) {
   if (el) el.textContent = decodeURIComponent(empresa);
 }
 
-let lastCall = 0;
-let lastTs   = 0;
-let lastId   = '';
+let lastCall     = 0;
+let lastTs       = 0;
+let lastId       = '';
+let lastPriority = 0;
 const alertSound   = document.getElementById('alert-sound');
 const unlockOverlay = document.getElementById('unlock-overlay');
 let wakeLock = null;
@@ -78,13 +79,14 @@ window.addEventListener('beforeunload', () => {
   releaseWakeLock();
 });
 
-function alertUser(num, name, attendantId) {
+function alertUser(num, name, attendantId, isPriority) {
   if (alertSound) {
     alertSound.currentTime = 0;
     alertSound.play().catch(() => {});
   }
   if ('speechSynthesis' in window) {
     let text = `Senha ${num}`;
+    if (isPriority) text += ', preferencial';
     if (attendantId) text += `, ${attendantId}`;
     if (name) text += `, ${name}`;
     const utter = new SpeechSynthesisUtterance(text);
@@ -98,13 +100,14 @@ async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
     const res = await fetch(url);
-    const { currentCall, names = {}, timestamp, attendant } = await res.json();
+    const { currentCall, names = {}, timestamp, attendant, currentCallPriority = 0 } = await res.json();
     const currentEl = document.getElementById('current');
     const nameEl = document.getElementById('current-name');
     const idEl   = document.getElementById('current-id');
     const container = document.querySelector('.container');
     const name = names[currentCall];
     currentEl.textContent = currentCall;
+    currentEl.classList.toggle('priority', currentCallPriority > 0);
     if (name) {
       currentEl.classList.add('manual');
       nameEl.textContent = name;
@@ -113,13 +116,14 @@ async function fetchCurrent() {
       nameEl.textContent = '';
     }
     if (idEl) idEl.textContent = attendant || '';
-    if (currentCall && (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId)) {
-      alertUser(currentCall, name, attendant);
+    if (currentCall && (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId || currentCallPriority !== lastPriority)) {
+      alertUser(currentCall, name, attendant, currentCallPriority > 0);
       container.classList.add('blink');
       setTimeout(() => container.classList.remove('blink'), 5000);
       lastCall = currentCall;
       lastTs = timestamp;
       lastId = attendant;
+      lastPriority = currentCallPriority;
     }
   } catch (e) {
     console.error('Erro ao buscar currentCall:', e);
