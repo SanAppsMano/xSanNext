@@ -33,7 +33,7 @@ export async function handler(event) {
     if (!paramNum && priorityOnly) {
       p = await redis.lpop(prefix + "priorityQueue");
       if (!p) {
-        if (currentCallPrev) {
+        if (currentPriorityPrev === 1 && currentCallPrev) {
           const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
             await Promise.all([
               redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
@@ -92,6 +92,7 @@ export async function handler(event) {
     // o atual perde a vez, exceto quando for uma repetição do mesmo ticket
     if (
       isPriorityCall &&
+      currentPriorityPrev === 1 &&
       currentCallPrev &&
       !isRepeatingPriority
     ) {
@@ -260,7 +261,7 @@ export async function handler(event) {
     // número chamado nessa sequência (prevCounter), independente de haver
     // chamadas manuais entre eles. Assim tickets com ou sem nome são
     // tratados igualmente.
-    if (!paramNum && !isPriorityCall && prevCounter && next > prevCounter) {
+    if (!paramNum && !isPriorityCall && currentPriorityPrev === 0 && prevCounter && next > prevCounter) {
       const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
         redis.sismember(prefix + "cancelledSet", String(prevCounter)),
         redis.sismember(prefix + "missedSet", String(prevCounter)),
