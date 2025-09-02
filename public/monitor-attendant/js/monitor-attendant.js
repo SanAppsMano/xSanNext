@@ -1136,9 +1136,14 @@ function startBouncingCompanyName(text) {
     });
 
     btnNext.onclick = async () => {
-      if (currentCallNum > 0 &&
-          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
-        return;
+      if (currentCallNum > 0) {
+        if (prioritySet.has(currentCallNum)) {
+          alert('Finalize o ticket preferencial antes de chamar o próximo normal.');
+          return;
+        }
+        if (!confirm('Ainda há um ticket normal sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+          return;
+        }
       }
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
@@ -1158,9 +1163,14 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnNextPriority.onclick = async () => {
-      if (currentCallNum > 0 &&
-          !confirm('Ainda há um ticket sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
-        return;
+      if (currentCallNum > 0) {
+        if (!prioritySet.has(currentCallNum)) {
+          alert('Finalize o ticket normal antes de chamar o próximo preferencial.');
+          return;
+        }
+        if (!confirm('Ainda há um ticket preferencial sendo chamado. Avançar fará com que ele perca a vez. Continuar?')) {
+          return;
+        }
       }
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&priority=1`;
