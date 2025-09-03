@@ -297,11 +297,6 @@ async function checkStatus() {
     for (let n = callCounter + 1; n < ticketNumber; n++) {
       if (n !== currentCall && !removed.has(n)) ahead++;
     }
-    if (!isPriority) {
-      for (const pn of priNums) {
-        if (pn >= ticketNumber && !removed.has(pn)) ahead++;
-      }
-    }
   }
   renderAheadCount(ahead, label);
 
