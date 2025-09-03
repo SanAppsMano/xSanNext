@@ -236,14 +236,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnEditSchedule) { btnEditSchedule.hidden = true; btnEditSchedule.onclick = null; }
     if (btnClone)        btnClone.hidden = true;
     if (btnChangePw)     btnChangePw.hidden = true;
-    if (adminToggle)     { adminToggle.hidden = true; adminToggle.onclick = null; }
-    if (adminPanel)      adminPanel.hidden = true;
+    if (adminToggle)     { adminToggle.remove(); }
+    if (adminPanel)      { adminPanel.remove(); }
     if (btnRevokeClone) {
       btnRevokeClone.hidden = false;
       btnRevokeClone.onclick = () => revokeClone(token, cloneId);
     }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
+  } else if (btnRevokeClone) {
+    btnRevokeClone.hidden = true;
   }
 
   btnEditSchedule.onclick = () => {
