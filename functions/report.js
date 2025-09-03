@@ -30,6 +30,7 @@ export async function handler(event) {
       redis.hgetall(prefix + "ticketNames"),
       redis.smembers(prefix + "offHoursSet"),
       redis.smembers(prefix + "priorityHistory"),
+      redis.get(prefix + "ticketCounter"),
     ]);
 
     const [
@@ -43,6 +44,7 @@ export async function handler(event) {
       nameMap,
       offHoursSet,
       priorityHistory,
+      ticketCounterRaw,
     ] = data;
 
   const safeParse = (val) => {
@@ -93,6 +95,8 @@ export async function handler(event) {
     }
   }
 
+  const ticketCounter = Number(ticketCounterRaw || 0);
+
   const ticketNumbers = new Set([
     ...entered.map(e => e.ticket),
     ...called.map(c => c.ticket),
@@ -105,6 +109,11 @@ export async function handler(event) {
     ...offHoursNums,
     ...priorityHistory.map(n => Number(n))
   ]);
+
+  for (let i = 1; i <= ticketCounter; i++) {
+    ticketNumbers.add(i);
+  }
+
   const nums = Array.from(ticketNumbers).sort((a, b) => a - b);
 
   const priorityNums = priorityHistory.map(n => Number(n));
