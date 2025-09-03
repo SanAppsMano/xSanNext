@@ -16,7 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
   let attParam        = urlParams.get('a');
-  const isClone       = urlParams.get('clone') === '1';
+  let cloneId         = sessionStorage.getItem('cloneId');
+  if (!cloneId) {
+    cloneId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now() + Math.random());
+    sessionStorage.setItem('cloneId', cloneId);
+  }
+  const cloneSeqKey   = `cloneSeq_${cloneId}`;
+  let cloneSeq        = null;
+  if (urlParams.get('clone') === '1') {
+    cloneSeq = urlParams.get('n') || localStorage.getItem(cloneSeqKey);
+    if (cloneSeq) localStorage.setItem(cloneSeqKey, cloneSeq);
+  } else {
+    cloneSeq = localStorage.getItem(cloneSeqKey);
+  }
+  const isClone       = cloneSeq !== null;
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
@@ -25,11 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   let logoutVersion   = localStorage.getItem('logoutVersion');
   logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
-  let cloneId         = localStorage.getItem('cloneId');
-  if (!cloneId) {
-    cloneId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now() + Math.random());
-    localStorage.setItem('cloneId', cloneId);
-  }
 
   // Se token não veio na URL mas existe em localStorage, usar
   if (!token && cfg && cfg.token) {
@@ -241,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminPanel)      { adminPanel.remove(); }
     if (btnRevokeClone) {
       btnRevokeClone.hidden = false;
+      if (cloneSeq) btnRevokeClone.textContent = `Revogar${cloneSeq}`;
       btnRevokeClone.onclick = () => revokeClone(token, cloneId);
     }
     const qrPanel = document.querySelector('.qrcode-panel');
@@ -1145,6 +1154,7 @@ function startBouncingCompanyName(text) {
         body: JSON.stringify({ token: t, cloneId: id })
       });
     } catch (e) { console.error('cancelClone', e); }
+    localStorage.removeItem(`cloneSeq_${id}`);
     loadCloneList(t);
   }
 
