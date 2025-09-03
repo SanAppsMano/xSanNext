@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let senhaParam      = urlParams.get('senha');
   let attParam        = urlParams.get('a');
   const isClone       = urlParams.get('clone') === '1';
+  let cloneSeq        = null;
+  if (isClone) {
+    cloneSeq = urlParams.get('n') || localStorage.getItem('cloneSeq');
+    if (cloneSeq) localStorage.setItem('cloneSeq', cloneSeq);
+  } else {
+    localStorage.removeItem('cloneSeq');
+  }
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
@@ -241,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminPanel)      { adminPanel.remove(); }
     if (btnRevokeClone) {
       btnRevokeClone.hidden = false;
+      if (cloneSeq) btnRevokeClone.textContent = `Revogar${cloneSeq}`;
       btnRevokeClone.onclick = () => revokeClone(token, cloneId);
     }
     const qrPanel = document.querySelector('.qrcode-panel');
