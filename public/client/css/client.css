@@ -217,20 +217,12 @@ button {
 }
 
 .ticket-option .icon {
-  font-size: 2rem;
   margin-bottom: 0.25rem;
 }
 
-.ticket-option .priority-icon {
-  position: relative;
-  display: inline-block;
-}
-
-.ticket-option .priority-icon .star {
-  position: absolute;
-  font-size: 1rem;
-  top: 0;
-  right: -0.5rem;
+.ticket-option .icon svg {
+  width: 2rem;
+  height: 2rem;
 }
 
 .ticket-option:hover {
