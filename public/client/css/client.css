@@ -180,17 +180,6 @@ button {
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
-.ticket-selection .badge {
-  display: inline-block;
-  background: var(--primary);
-  color: #fff;
-  padding: 0.25rem 0.75rem;
-  border-radius: var(--radius);
-  font-size: 0.75rem;
-  margin-bottom: 1rem;
-}
-
 .ticket-selection h2 {
   font-size: 1.25rem;
   margin-bottom: 1rem;
