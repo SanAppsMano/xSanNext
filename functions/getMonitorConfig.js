@@ -69,9 +69,10 @@ exports.handler = async (event) => {
       console.error('schedule fetch error:', err);
     }
   }
+  const preferentialDesk = stored.preferentialDesk !== false;
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ empresa: stored.empresa, schedule })
+    body: JSON.stringify({ empresa: stored.empresa, schedule, preferentialDesk })
   };
 };

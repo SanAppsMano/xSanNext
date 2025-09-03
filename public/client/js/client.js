@@ -232,6 +232,17 @@ async function getTicket(priority = false) {
   sendWelcomeNotification();
 }
 
+function renderAheadCount(value, label) {
+  const el = document.getElementById('aheadCount');
+  if (!el) { throw new Error('#aheadCount não encontrado'); }
+  const n = Math.max(0, Number(value) || 0);
+  el.textContent = String(n);
+  const textEl = document.getElementById('aheadText');
+  if (textEl) textEl.textContent = label;
+  const pill = document.getElementById('aheadPill');
+  if (pill) { pill.title = label; pill.setAttribute('aria-label', label); }
+}
+
 async function checkStatus() {
   if (!ticketNumber) return;
   if (!withinSchedule()) {
@@ -242,18 +253,57 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
+  const status = await res.json();
   const {
     currentCall,
     callCounter = 0,
     ticketCounter,
     timestamp,
     attendant,
+    cancelledNumbers = [],
     missedNumbers = [],
     attendedNumbers = [],
+    skippedNumbers = [],
+    offHoursNumbers = [],
     names = {},
     priorityNumbers = [],
-  } = await res.json();
+  } = status;
   const myName = names[ticketNumber];
+  const removed = new Set([
+    ...cancelledNumbers,
+    ...missedNumbers,
+    ...attendedNumbers,
+    ...skippedNumbers,
+    ...offHoursNumbers,
+  ].map(Number));
+  const priNums = priorityNumbers.map(Number);
+  const isPriority = priNums.includes(ticketNumber);
+  let ahead = 0;
+  let label = 'À sua frente:';
+  if (status.preferentialDesk !== false) {
+    if (isPriority) {
+      label = 'Preferenciais à sua frente:';
+      for (let n = callCounter + 1; n < ticketNumber; n++) {
+        if (priNums.includes(n) && !removed.has(n)) ahead++;
+      }
+    } else {
+      label = 'Normais à sua frente:';
+      for (let n = callCounter + 1; n < ticketNumber; n++) {
+        if (!priNums.includes(n) && !removed.has(n)) ahead++;
+      }
+    }
+  } else {
+    label = 'À sua frente:';
+    for (let n = callCounter + 1; n < ticketNumber; n++) {
+      if (n !== currentCall && !removed.has(n)) ahead++;
+    }
+    if (!isPriority) {
+      for (const pn of priNums) {
+        if (pn >= ticketNumber && !removed.has(pn)) ahead++;
+      }
+    }
+  }
+  renderAheadCount(ahead, label);
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");

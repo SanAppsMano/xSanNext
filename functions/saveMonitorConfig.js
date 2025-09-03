@@ -28,7 +28,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const { token, empresa, senha, trialDays, schedule } = body;
+  const { token, empresa, senha, trialDays, schedule, preferentialDesk } = body;
   if (!token || !empresa || !senha) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
   }
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
     const pwHash = await bcrypt.hash(senha, 10);
     await redis.set(
       `monitor:${token}`,
-      JSON.stringify({ empresa, schedule }),
+      JSON.stringify({ empresa, schedule, preferentialDesk: preferentialDesk !== false }),
       { ex: ttl }
     );
     await redis.set(

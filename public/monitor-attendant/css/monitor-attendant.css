@@ -764,6 +764,13 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.admin-panel .pref-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
 .admin-panel .ticket-setter label {
   font-size: 0.875rem;
   color: var(--primary);

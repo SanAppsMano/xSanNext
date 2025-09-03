@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
+  if (cfg && typeof cfg.preferentialDesk === 'undefined') {
+    cfg.preferentialDesk = true;
+    localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+  }
   let logoutVersion   = localStorage.getItem('logoutVersion');
   logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
   let cloneId         = localStorage.getItem('cloneId');
@@ -162,6 +166,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastTicketSpan = document.getElementById('last-ticket');
   const setTicketBtn   = document.getElementById('set-ticket');
   const ticketError    = document.getElementById('ticket-error');
+  const prefDeskToggle = document.getElementById('pref-desk-toggle');
+  if (prefDeskToggle) {
+    prefDeskToggle.checked = cfg ? cfg.preferentialDesk !== false : true;
+    prefDeskToggle.addEventListener('change', async () => {
+      if (isClone) {
+        prefDeskToggle.checked = cfg.preferentialDesk !== false;
+        return;
+      }
+      const preferentialDesk = prefDeskToggle.checked;
+      try {
+        const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule: cfg.schedule, preferentialDesk })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error();
+        cfg.preferentialDesk = preferentialDesk;
+        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+      } catch (e) {
+        alert('Erro ao salvar configuração.');
+        console.error(e);
+        prefDeskToggle.checked = !preferentialDesk;
+      }
+    });
+  }
   adminToggle?.addEventListener('click', () => {
     adminPanel.hidden = !adminPanel.hidden;
   });
@@ -265,11 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule })
+        body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule, preferentialDesk: prefDeskToggle.checked })
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error();
       cfg.schedule = schedule;
+      cfg.preferentialDesk = prefDeskToggle.checked;
       localStorage.setItem('monitorConfig', JSON.stringify(cfg));
       scheduleModal.hidden = true;
     } catch (e) {
@@ -1314,6 +1345,7 @@ function startBouncingCompanyName(text) {
         cfg = null;
         token = urlParams.get('t');
       } else {
+        if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         showApp(cfg.empresa, token);
         return;
       }
@@ -1331,9 +1363,10 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
         if (!res.ok) throw new Error();
-        const { empresa, schedule } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt, schedule };
+        const { empresa, schedule, preferentialDesk } = await res.json();
+        cfg = { token, empresa, senha: senhaPrompt, schedule, preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
         return;
@@ -1394,8 +1427,9 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: pw })
         });
         const cfgData = await cfgRes.json();
-        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule };
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
       } catch (e) {
@@ -1427,8 +1461,9 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: pw })
         });
         const cfgData = await cfgRes.json();
-        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule };
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
       } catch (e) {
@@ -1457,11 +1492,11 @@ function startBouncingCompanyName(text) {
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays, schedule })
+          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays, schedule, preferentialDesk: true })
         });
         const { ok } = await res.json();
         if (!ok) throw new Error();
-        cfg = { token, empresa: label, senha: pw, schedule };
+        cfg = { token, empresa: label, senha: pw, schedule, preferentialDesk: true };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
         showApp(label, token);
