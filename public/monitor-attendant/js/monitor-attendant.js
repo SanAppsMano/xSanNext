@@ -134,11 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (attParam) {
     attendantInput.value = attParam;
   }
-  const currentCallEl  = document.getElementById('current-call');
+  const callingEl      = document.getElementById('calling');
   const currentIdEl    = document.getElementById('current-id');
-  const waitingEl      = document.getElementById('waiting-count');
-  const waitingNormalEl   = document.getElementById('waiting-normal');
-  const waitingPriorityEl = document.getElementById('waiting-priority');
+  const qTotalEl       = document.getElementById('qTotal');
+  const qNormEl        = document.getElementById('qNorm');
+  const qPrefEl        = document.getElementById('qPref');
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
@@ -150,11 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedCountEl  = document.getElementById('attended-count');
   const queueListEl    = document.getElementById('queue-list');
   const btnNext        = document.getElementById('btn-next');
-  const btnNextPriority= document.getElementById('btn-next-priority');
+  const btnNextPref    = document.getElementById('btn-next-pref');
   const btnRepeat      = document.getElementById('btn-repeat');
-  const btnAttended    = document.getElementById('btn-attended');
-  const btnNewManual   = document.getElementById('btn-new-manual');
-  const btnNewPriority = document.getElementById('btn-new-priority');
+  const btnDone        = document.getElementById('btn-done');
+  const btnTicket      = document.getElementById('btn-ticket');
+  const btnTicketPref  = document.getElementById('btn-ticket-pref');
   const btnReset       = document.getElementById('btn-reset');
   const btnReport      = document.getElementById('btn-report');
   const btnView        = document.getElementById('btn-view-monitor');
@@ -572,7 +572,7 @@ function startBouncingCompanyName(text) {
     const nm = ticketNames[num];
     if (nm) text += ` - ${nm}`;
     if (prioritySet.has(num)) text += ' (Preferencial)';
-    currentCallEl.textContent = text;
+    callingEl.textContent = text;
     currentIdEl.textContent   = attendantId || '';
   }
 
@@ -664,15 +664,20 @@ function startBouncingCompanyName(text) {
         !skippedNums.includes(n) &&
         !offHoursNums.includes(n)
       );
-      if (btnNextPriority) {
+      if (btnNextPref) {
         const hasPriority = priorityWaiting.length > 0 || prioritySet.has(currentCallNum);
-        btnNextPriority.disabled = !hasPriority;
-        btnNextPriority.title = hasPriority ? '' : 'Sem tickets preferenciais na fila';
+        btnNextPref.disabled = !hasPriority;
+        btnNextPref.title = hasPriority ? '' : 'Sem tickets preferenciais na fila';
       }
       const waitingPriority = priorityWaiting.length;
       const waitingNormal = Math.max(0, waiting - waitingPriority);
-      waitingPriorityEl.textContent = waitingPriority;
-      waitingNormalEl.textContent = waitingNormal;
+      if (btnNext) {
+        const hasAny = waitingPriority + waitingNormal > 0;
+        btnNext.disabled = !hasAny;
+        btnNext.title = hasAny ? '' : 'Sem tickets na fila';
+      }
+      qPrefEl.textContent = waitingPriority;
+      qNormEl.textContent = waitingNormal;
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
@@ -681,9 +686,9 @@ function startBouncingCompanyName(text) {
       let cText = currentCall > 0 ? currentCall : '–';
       if (cName) cText += ` - ${cName}`;
       if (prioritySet.has(currentCall)) cText += ' (Preferencial)';
-      currentCallEl.textContent = cText;
+      callingEl.textContent = cText;
       currentIdEl.textContent   = attendantId || '';
-      waitingEl.textContent     = waiting;
+      qTotalEl.textContent     = waiting;
 
       cancelCountEl.textContent = cancelledCount;
       cancelThumbsEl.innerHTML  = '';
@@ -820,7 +825,7 @@ function startBouncingCompanyName(text) {
     const attendedCount  = Number(attendedCountEl.textContent) || 0;
     const cancelledCount = Number(cancelCountEl.textContent) || 0;
     const missedCount    = Number(missedCountEl.textContent) || 0;
-    const waitingCount   = Number(waitingEl.textContent) || 0;
+    const waitingCount   = Number(qTotalEl.textContent) || 0;
 
     if (!tickets.length &&
         !totalTickets &&
@@ -1215,7 +1220,7 @@ function startBouncingCompanyName(text) {
       updateCall(called, attendant);
       refreshAll(t);
     };
-    btnNextPriority.onclick = async () => {
+    btnNextPref.onclick = async () => {
       if (currentCallNum > 0) {
         if (!prioritySet.has(currentCallNum)) {
           alert('Finalize o ticket normal antes de chamar o próximo preferencial.');
@@ -1250,7 +1255,7 @@ function startBouncingCompanyName(text) {
       updateCall(called, attendant);
       refreshAll(t);
     };
-    btnAttended.onclick = async () => {
+    btnDone.onclick = async () => {
       if (!currentCallNum) return;
       await fetch(`/.netlify/functions/atendido?t=${t}`, {
         method: 'POST',
@@ -1259,7 +1264,7 @@ function startBouncingCompanyName(text) {
       });
       refreshAll(t);
     };
-    btnNewManual.onclick = async () => {
+    btnTicket.onclick = async () => {
       const name = prompt('Nome do cliente:');
       if (!name) return;
       await fetch(`/.netlify/functions/manualTicket?t=${t}`, {
@@ -1269,7 +1274,7 @@ function startBouncingCompanyName(text) {
       });
       refreshAll(t);
     };
-    btnNewPriority.onclick = async () => {
+    btnTicketPref.onclick = async () => {
       const name = prompt('Nome do cliente:');
       if (!name) return;
       await fetch(`/.netlify/functions/manualTicket?t=${t}`, {
