@@ -16,13 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let empresaParam    = urlParams.get('empresa');
   let senhaParam      = urlParams.get('senha');
   let attParam        = urlParams.get('a');
-  let cloneSeq       = urlParams.get('n');
-  let isClone         = urlParams.get('clone') === '1' || localStorage.getItem('isClone') === '1';
-  if (isClone) {
-    localStorage.setItem('isClone', '1');
-  } else {
-    localStorage.removeItem('isClone');
-  }
+  const isClone       = urlParams.get('clone') === '1';
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
@@ -230,8 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordNew    = document.getElementById('password-new');
   const passwordError  = document.getElementById('password-error');
   const togglePwCurrent= document.getElementById('toggle-password-current');
-  const cloneListEl    = document.getElementById('clone-list');
-  const clonesPanel    = document.querySelector('.clones-panel');
+  const clonesPanel = document.querySelector('.clones-panel');
+  if (clonesPanel) clonesPanel.hidden = true;
 
   toggleInterval(editUse1, editStart1, editEnd1);
   toggleInterval(editUse2, editStart2, editEnd2);
@@ -247,11 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnRevokeClone) {
       btnRevokeClone.hidden = false;
       btnRevokeClone.onclick = () => revokeClone(token, cloneId);
-      if (cloneSeq) btnRevokeClone.textContent = `Revogar ${cloneSeq}`;
     }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
-    if (clonesPanel) clonesPanel.hidden = true;
   }
 
   btnEditSchedule.onclick = () => {
@@ -1154,29 +1146,15 @@ function startBouncingCompanyName(text) {
   }
 
   async function loadCloneList(t) {
-    if (!t) return;
+    if (!t || !isClone) return;
     try {
       const res = await fetch(`/.netlify/functions/listClones?t=${t}`);
       const { clones = [] } = await res.json();
-      if (isClone) {
-        if (!clones.includes(cloneId)) {
-          localStorage.clear();
-          history.replaceState(null, '', '/');
-          location.href = '/';
-        }
-        return;
+      if (!clones.includes(cloneId)) {
+        localStorage.clear();
+        history.replaceState(null, '', '/');
+        location.href = '/';
       }
-      if (!cloneListEl) return;
-      cloneListEl.innerHTML = '';
-      clones.filter(c => c !== cloneId).forEach((id, idx) => {
-        const li = document.createElement('li');
-        const b = document.createElement('button');
-        b.textContent = `Revogar ${idx + 1}`;
-        b.className = 'btn btn-secondary';
-        b.onclick = () => revokeClone(t, id);
-        li.appendChild(b);
-        cloneListEl.appendChild(li);
-      });
     } catch (e) {
       console.error('listClones', e);
     }
