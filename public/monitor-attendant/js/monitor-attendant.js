@@ -774,14 +774,16 @@ function startBouncingCompanyName(text) {
       avgDur = 0,
       avgWaitHms = '00:00:00',
       avgDurHms = '00:00:00',
-      offHoursCount: offHoursReport = 0
+      offHoursCount: offHoursReport = 0,
+      totalTickets = 0,
+      priorityCount = 0,
+      normalCount = 0
     } = summary;
 
     const attendedCount  = Number(attendedCountEl.textContent) || 0;
     const cancelledCount = Number(cancelCountEl.textContent) || 0;
     const missedCount    = Number(missedCountEl.textContent) || 0;
     const waitingCount   = Number(waitingEl.textContent) || 0;
-    const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursReport;
 
     if (!tickets.length &&
         !totalTickets &&
@@ -794,6 +796,8 @@ function startBouncingCompanyName(text) {
     } else {
       reportSummary.innerHTML = `
         <p>Total de tickets: ${totalTickets}</p>
+        <p>Normais: ${normalCount}</p>
+        <p>Preferenciais: ${priorityCount}</p>
         <p>Atendidos: ${attendedCount}</p>
         <p>Tempo médio de espera: ${avgWaitHms}</p>
         <p>Tempo médio de atendimento: ${avgDurHms}</p>
@@ -812,6 +816,7 @@ function startBouncingCompanyName(text) {
           <th>Ticket</th>
           <th>Nome</th>
           <th>Identificador</th>
+          <th>Tipo</th>
           <th>Status</th>
           <th>Entrada</th>
           <th>Chamada</th>
@@ -837,6 +842,7 @@ function startBouncingCompanyName(text) {
         <td>${tk.ticket}</td>
         <td>${tk.name || ''}</td>
         <td>${tk.identifier || tk.attendant || ''}</td>
+        <td>${tk.type || ''}</td>
         <td>${label(tk.status)}</td>
         <td>${tk.enteredBr || fmt(tk.entered)}</td>
         <td>${tk.calledBr || fmt(tk.called)}</td>
@@ -861,16 +867,18 @@ function startBouncingCompanyName(text) {
       const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const col = (i) => String.fromCharCode(65 + i);
 
-      const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const headers = ['Ticket','Nome','Identificador','Tipo','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
       const rows = [];
       rows.push('<row r="1">' + headers.map((h,i)=>`<c r="${col(i)}1" t="inlineStr"><is><t>${esc(h)}</t></is></c>`).join('') + '</row>');
       tickets.forEach((tk,idx)=>{
-        const vals=[tk.ticket,tk.name||'',tk.identifier||tk.attendant||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
+        const vals=[tk.ticket,tk.name||'',tk.identifier||tk.attendant||'',tk.type||'',label(tk.status),tk.enteredBr||fmt(tk.entered)||'',tk.calledBr||fmt(tk.called)||'',tk.attendedBr||fmt(tk.attended)||'',tk.cancelledBr||fmt(tk.cancelled)||'',tk.waitHms||msToHms(tk.wait)||'',tk.durationHms||msToHms(tk.duration)||''];
         const r=idx+2;
         rows.push('<row r="'+r+'">'+vals.map((v,i)=>`<c r="${col(i)}${r}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`).join('')+'</row>');
       });
       let r = tickets.length + 3;
       rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Total tickets</t></is></c><c t="inlineStr"><is><t>${totalTickets}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Normais</t></is></c><c t="inlineStr"><is><t>${normalCount}</t></is></c></row>`); r++;
+      rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Preferenciais</t></is></c><c t="inlineStr"><is><t>${priorityCount}</t></is></c></row>`); r++;
       rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Atendidos</t></is></c><c t="inlineStr"><is><t>${attendedCount}</t></is></c></row>`); r++;
       rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Cancelados</t></is></c><c t="inlineStr"><is><t>${cancelledCount}</t></is></c></row>`); r++;
       rows.push(`<row r="${r}"><c t="inlineStr"><is><t>Perderam a vez</t></is></c><c t="inlineStr"><is><t>${missedCount}</t></is></c></row>`); r++;
@@ -939,6 +947,8 @@ function startBouncingCompanyName(text) {
       const nowStr = new Date().toLocaleString('pt-BR');
       const summaryLines = [
         `Total de tickets: ${totalTickets}`,
+        `Normais: ${normalCount}`,
+        `Preferenciais: ${priorityCount}`,
         `Atendidos: ${attendedCount}`,
         `Cancelados: ${cancelledCount}`,
         `Perderam a vez: ${missedCount}`,
@@ -988,19 +998,22 @@ function startBouncingCompanyName(text) {
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
 
       doc.setFontSize(16);
-      doc.text(`Relatório - ${cfg?.empresa || ''}`, 105, 15, { align: 'center' });
+      doc.text(`Relatório - ${cfg?.empresa || ''}`, pageWidth / 2, 15, { align: 'center' });
       doc.setFontSize(10);
-      doc.text(`Gerado em: ${nowStr} - by SanNext`, 105, 22, { align: 'center' });
+      doc.text(`Gerado em: ${nowStr} - by SanNext`, pageWidth / 2, 22, { align: 'center' });
 
       let y = 30;
+      const marginX = 10;
       doc.setFontSize(12);
-      summaryLines.forEach(line => { doc.text(line, 20, y); y += 7; });
+      summaryLines.forEach(line => { doc.text(line, marginX, y); y += 7; });
 
-      const headers = ['Ticket','Nome','Identificador','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
-      const colW = [14, 40, 27, 25, 30, 30, 30, 30, 25, 25];
-      const startX = 20;
+      const headers = ['Ticket','Nome','Identificador','Tipo','Status','Entrada','Chamada','Atendido','Cancelado','Espera','Duração'];
+      const colW = [14,35,27,20,25,27,27,27,25,25,24];
+      const startX = marginX;
       const rowH = 9;
       const drawRow = (vals, yPos, bold = false) => {
         let x = startX;
@@ -1013,7 +1026,7 @@ function startBouncingCompanyName(text) {
 
       drawRow(headers, y, true); y += rowH;
       tickets.forEach(tk => {
-        if (y > 190) {
+        if (y > pageHeight - 20) {
           doc.addPage('l');
           y = 20;
           drawRow(headers, y, true); y += rowH;
@@ -1022,6 +1035,7 @@ function startBouncingCompanyName(text) {
           tk.ticket,
           tk.name || '',
           tk.identifier || tk.attendant || '',
+          tk.type || '',
           label(tk.status),
           tk.enteredBr || fmt(tk.entered) || '',
           tk.calledBr || fmt(tk.called) || '',
@@ -1035,7 +1049,7 @@ function startBouncingCompanyName(text) {
 
       doc.addPage('l');
       const img = reportChartEl.toDataURL('image/png');
-      doc.addImage(img, 'PNG', 20, 20, 170, 80);
+      doc.addImage(img, 'PNG', marginX, 20, 170, 80);
 
       doc.save('relatorio.pdf');
     };
