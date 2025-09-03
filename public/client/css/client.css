@@ -221,6 +221,18 @@ button {
   margin-bottom: 0.25rem;
 }
 
+.ticket-option .priority-icon {
+  position: relative;
+  display: inline-block;
+}
+
+.ticket-option .priority-icon .star {
+  position: absolute;
+  font-size: 1rem;
+  top: 0;
+  right: -0.5rem;
+}
+
 .ticket-option:hover {
   background: var(--primary);
   color: #fff;
