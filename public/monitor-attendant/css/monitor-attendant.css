@@ -301,6 +301,26 @@ body {
 .status-info {
   font-size: 1rem;
   color: var(--muted);
+  text-align: center;
+}
+
+.waiting-details {
+  margin-top: 0.25rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.waiting-details .badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  background: #e0e0e0;
+}
+
+.waiting-details .badge.priority {
+  background: var(--warning);
+  color: #fff;
 }
 
 .history-panel h2 {

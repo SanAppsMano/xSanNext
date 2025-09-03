@@ -162,7 +162,11 @@
         <button id="btn-new-priority" class="btn btn-warning">Ticket Preferencial</button>
       </div>
       <div class="status-info">
-        Em espera: <span id="waiting-count">–</span> clientes
+        <span class="waiting-total">Em espera: <span id="waiting-count">–</span> clientes</span>
+        <div class="waiting-details">
+          <span class="badge normal">Normais: <span id="waiting-normal">0</span></span>
+          <span class="badge priority">Preferenciais: <span id="waiting-priority">0</span></span>
+        </div>
       </div>
       <div class="btn-row">
         <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
