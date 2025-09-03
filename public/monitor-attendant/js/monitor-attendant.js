@@ -17,12 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let senhaParam      = urlParams.get('senha');
   let attParam        = urlParams.get('a');
   let cloneSeq       = urlParams.get('n');
-  let isClone         = urlParams.get('clone') === '1' || localStorage.getItem('isClone') === '1';
-  if (isClone) {
-    localStorage.setItem('isClone', '1');
-  } else {
-    localStorage.removeItem('isClone');
-  }
+  const isClone       = urlParams.get('clone') === '1';
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
