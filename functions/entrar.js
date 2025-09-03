@@ -72,6 +72,7 @@ export async function handler(event) {
     if (priority) {
       await redis.rpush(prefix + "priorityQueue", ticketNumber);
       await redis.sadd(prefix + "prioritySet", String(ticketNumber));
+      await redis.sadd(prefix + "priorityHistory", String(ticketNumber));
     }
 
     const isOffHours = !withinSchedule(schedule);

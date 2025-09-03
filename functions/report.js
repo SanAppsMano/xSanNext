@@ -29,6 +29,7 @@ export async function handler(event) {
       redis.smembers(prefix + "attendedSet"),
       redis.hgetall(prefix + "ticketNames"),
       redis.smembers(prefix + "offHoursSet"),
+      redis.smembers(prefix + "priorityHistory"),
     ]);
 
     const [
@@ -41,6 +42,7 @@ export async function handler(event) {
       attendedSet,
       nameMap,
       offHoursSet,
+      priorityHistory,
     ] = data;
 
   const safeParse = (val) => {
@@ -100,9 +102,13 @@ export async function handler(event) {
     ...missedNums,
     ...attendedNums,
     ...(nameMap ? Object.keys(nameMap).map(Number) : []),
-    ...offHoursNums
+    ...offHoursNums,
+    ...priorityHistory.map(n => Number(n))
   ]);
   const nums = Array.from(ticketNumbers).sort((a, b) => a - b);
+
+  const priorityNums = priorityHistory.map(n => Number(n));
+  const priorityHistSet = new Set(priorityNums);
 
   const map = {};
   nums.forEach((n) => {
@@ -201,6 +207,7 @@ export async function handler(event) {
     // Status e cálculos de tempo atuais
     const now = Date.now();
     tickets.forEach(tk => {
+      tk.type = priorityHistSet.has(tk.ticket) ? 'Preferencial' : 'Normal';
       if (offHoursNums.includes(tk.ticket)) {
         tk.status = "offhours";
       } else if (attendedNums.includes(tk.ticket)) {
@@ -248,6 +255,8 @@ export async function handler(event) {
     const calledCount    = counts.called;
     const offHoursCount  = counts.offhours;
     const totalTickets   = attendedCount + cancelledCount + missedCount + waitingCount + calledCount + offHoursCount;
+    const priorityCount  = tickets.filter(t => t.type === 'Preferencial').length;
+    const normalCount    = totalTickets - priorityCount;
 
     const waitValues = tickets.map((t) => t.wait).filter((n) => typeof n === "number");
     const durValues  = tickets.map((t) => t.duration).filter((n) => typeof n === "number");
@@ -274,6 +283,8 @@ export async function handler(event) {
           avgDur,
           avgWaitHms,
           avgDurHms,
+          priorityCount,
+          normalCount,
         },
       }),
     };
