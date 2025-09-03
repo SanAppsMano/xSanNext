@@ -211,7 +211,12 @@ export async function handler(event) {
     }
 
     if (next > ticketCount || !(await redis.get(prefix + `ticketTime:${next}`))) {
-      if (currentCallPrev) {
+      // só altera o ticket atual quando a chamada pertence à mesma fila
+      if (
+        currentCallPrev &&
+        ((isPriorityCall && currentPriorityPrev === 1) ||
+          (!isPriorityCall && currentPriorityPrev === 0))
+      ) {
         const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
           await Promise.all([
             redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
@@ -267,28 +272,32 @@ export async function handler(event) {
     // chamadas manuais entre eles. Assim tickets com ou sem nome são
     // tratados igualmente.
     if (!paramNum && !isPriorityCall && currentPriorityPrev === 0 && prevCounter && next > prevCounter) {
-      const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
-        redis.sismember(prefix + "cancelledSet", String(prevCounter)),
-        redis.sismember(prefix + "missedSet", String(prevCounter)),
-        redis.sismember(prefix + "attendedSet", String(prevCounter)),
-        redis.sismember(prefix + "skippedSet", String(prevCounter)),
-        redis.get(prefix + `ticketTime:${prevCounter}`)
-      ]);
-      if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
-        const calledTs = Number((await redis.get(prefix + `calledTime:${prevCounter}`)) || 0);
-        const dur = calledTs ? Date.now() - calledTs : 0;
-        const waitPrev = Number((await redis.get(prefix + `wait:${prevCounter}`)) || 0);
-        await redis.sadd(prefix + "missedSet", String(prevCounter));
-        const missTs = Date.now();
-        // registra o momento em que o ticket perdeu a vez
-        await redis.set(prefix + `cancelledTime:${prevCounter}`, missTs);
-        await redis.lpush(
-          prefix + "log:cancelled",
-          JSON.stringify({ ticket: prevCounter, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
-        );
-        await redis.ltrim(prefix + "log:cancelled", 0, 999);
-        await redis.expire(prefix + "log:cancelled", LOG_TTL);
-        await redis.del(prefix + `wait:${prevCounter}`);
+      // Evita interferência entre filas: não marca preferenciais como "perdeu a vez"
+      const isPrevPriority = await redis.sismember(prefix + "prioritySet", String(prevCounter));
+      if (!isPrevPriority) {
+        const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] = await Promise.all([
+          redis.sismember(prefix + "cancelledSet", String(prevCounter)),
+          redis.sismember(prefix + "missedSet", String(prevCounter)),
+          redis.sismember(prefix + "attendedSet", String(prevCounter)),
+          redis.sismember(prefix + "skippedSet", String(prevCounter)),
+          redis.get(prefix + `ticketTime:${prevCounter}`)
+        ]);
+        if (!isCancelled && !isMissed && !isAttended && !isSkipped && joinPrev) {
+          const calledTs = Number((await redis.get(prefix + `calledTime:${prevCounter}`)) || 0);
+          const dur = calledTs ? Date.now() - calledTs : 0;
+          const waitPrev = Number((await redis.get(prefix + `wait:${prevCounter}`)) || 0);
+          await redis.sadd(prefix + "missedSet", String(prevCounter));
+          const missTs = Date.now();
+          // registra o momento em que o ticket perdeu a vez
+          await redis.set(prefix + `cancelledTime:${prevCounter}`, missTs);
+          await redis.lpush(
+            prefix + "log:cancelled",
+            JSON.stringify({ ticket: prevCounter, ts: missTs, reason: "missed", duration: dur, wait: waitPrev })
+          );
+          await redis.ltrim(prefix + "log:cancelled", 0, 999);
+          await redis.expire(prefix + "log:cancelled", LOG_TTL);
+          await redis.del(prefix + `wait:${prevCounter}`);
+        }
       }
     }
 
