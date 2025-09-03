@@ -211,7 +211,12 @@ export async function handler(event) {
     }
 
     if (next > ticketCount || !(await redis.get(prefix + `ticketTime:${next}`))) {
-      if (currentCallPrev) {
+      // só altera o ticket atual quando a chamada pertence à mesma fila
+      if (
+        currentCallPrev &&
+        ((isPriorityCall && currentPriorityPrev === 1) ||
+          (!isPriorityCall && currentPriorityPrev === 0))
+      ) {
         const [isCancelled, isMissed, isAttended, isSkipped, joinPrev] =
           await Promise.all([
             redis.sismember(prefix + "cancelledSet", String(currentCallPrev)),
