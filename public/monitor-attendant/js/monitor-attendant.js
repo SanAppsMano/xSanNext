@@ -675,10 +675,31 @@ function startBouncingCompanyName(text) {
       }
       const waitingPriority = priorityWaiting.length;
       const waitingNormal = Math.max(0, waiting - waitingPriority);
+      const hasQueue = waitingPriority + waitingNormal > 0;
+      const hasAnyTicket = hasQueue || currentCallNum > 0;
       if (btnNext) {
-        const hasAny = waitingPriority + waitingNormal > 0;
-        btnNext.disabled = !hasAny;
-        btnNext.title = hasAny ? '' : 'Sem tickets na fila';
+        btnNext.disabled = !hasQueue;
+        btnNext.title = hasQueue ? '' : 'Sem tickets na fila';
+      }
+      if (btnNextPref && !hasAnyTicket) {
+        btnNextPref.disabled = true;
+        btnNextPref.title = 'Sem tickets na fila';
+      }
+      if (btnRepeat) {
+        btnRepeat.disabled = !hasAnyTicket;
+        btnRepeat.title = hasAnyTicket ? '' : 'Sem tickets na fila';
+      }
+      if (btnDone) {
+        btnDone.disabled = !hasAnyTicket;
+        btnDone.title = hasAnyTicket ? '' : 'Sem tickets na fila';
+      }
+      if (btnReport) {
+        btnReport.disabled = !hasAnyTicket;
+        btnReport.title = hasAnyTicket ? '' : 'Sem tickets na fila';
+      }
+      if (btnReset) {
+        btnReset.disabled = !hasAnyTicket;
+        btnReset.title = hasAnyTicket ? '' : 'Sem tickets na fila';
       }
       qPrefEl.textContent = waitingPriority;
       qNormEl.textContent = waitingNormal;
