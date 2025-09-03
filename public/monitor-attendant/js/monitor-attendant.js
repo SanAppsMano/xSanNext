@@ -137,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentCallEl  = document.getElementById('current-call');
   const currentIdEl    = document.getElementById('current-id');
   const waitingEl      = document.getElementById('waiting-count');
+  const waitingNormalEl   = document.getElementById('waiting-normal');
+  const waitingPriorityEl = document.getElementById('waiting-priority');
   const cancelListEl   = document.getElementById('cancel-list');
   const cancelThumbsEl = document.getElementById('cancel-thumbs');
   const cancelCountEl  = document.getElementById('cancel-count');
@@ -654,19 +656,23 @@ function startBouncingCompanyName(text) {
       offHoursSet     = new Set(offHoursNums);
       priorityNums    = priorityNumbers.map(Number);
       prioritySet     = new Set(priorityNums);
+      const priorityWaiting = priorityNums.filter(n =>
+        n !== currentCallNum &&
+        !cancelledNums.includes(n) &&
+        !missedNums.includes(n) &&
+        !attendedNums.includes(n) &&
+        !skippedNums.includes(n) &&
+        !offHoursNums.includes(n)
+      );
       if (btnNextPriority) {
-        const priorityWaiting = priorityNums.filter(n =>
-          n !== currentCallNum &&
-          !cancelledNums.includes(n) &&
-          !missedNums.includes(n) &&
-          !attendedNums.includes(n) &&
-          !skippedNums.includes(n) &&
-          !offHoursNums.includes(n)
-        );
         const hasPriority = priorityWaiting.length > 0 || prioritySet.has(currentCallNum);
         btnNextPriority.disabled = !hasPriority;
         btnNextPriority.title = hasPriority ? '' : 'Sem tickets preferenciais na fila';
       }
+      const waitingPriority = priorityWaiting.length;
+      const waitingNormal = Math.max(0, waiting - waitingPriority);
+      waitingPriorityEl.textContent = waitingPriority;
+      waitingNormalEl.textContent = waitingNormal;
       cancelledCount  = cc || cancelledNums.length;
       missedCount     = mc || missedNums.length;
       attendedCount   = ac;
