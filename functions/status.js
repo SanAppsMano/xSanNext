@@ -20,12 +20,17 @@ export async function handler(event) {
   }
   const prefix = `tenant:${tenantId}:`;
 
+  let monitorCfg = null;
+  if (monitorRaw) {
+    try { monitorCfg = typeof monitorRaw === "string" ? JSON.parse(monitorRaw) : monitorRaw; } catch {}
+  }
   let schedule = null;
   if (schedRaw) {
     try { schedule = typeof schedRaw === "string" ? JSON.parse(schedRaw) : schedRaw; } catch {}
-  } else if (monitorRaw) {
-    try { schedule = JSON.parse(monitorRaw).schedule || null; } catch {}
+  } else if (monitorCfg) {
+    schedule = monitorCfg.schedule || null;
   }
+  const preferentialDesk = monitorCfg?.preferentialDesk !== false;
   const withinSchedule = (sched) => {
     if (!sched) return true;
     const tz   = sched.tz || "America/Sao_Paulo";
@@ -146,6 +151,7 @@ export async function handler(event) {
       names: nameMap || {},
       priorityNumbers: priorityNums,
       logoutVersion: Number(logoutVersionRaw || 0),
+      preferentialDesk,
     }),
   };
 }

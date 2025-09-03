@@ -96,10 +96,35 @@ body {
 }
 
 /* Texto “Seu número:” */
+.label-row {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  white-space:nowrap;
+  margin:8px 0 6px;
+}
 .label {
   font-size: 1rem;
-  color: var(--text);
-  margin-bottom: 0.25rem;
+  color:#475569;
+  margin:0;
+}
+.ahead-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#f1f5f9;
+  border:1px solid #e2e8f0;
+  color:#334155;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:700;
+  box-shadow:0 4px 12px rgba(15,23,42,.06);
+}
+.ahead-pill svg {
+  width:14px;
+  height:14px;
 }
 
 /* Número do ticket */

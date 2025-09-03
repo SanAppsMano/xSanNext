@@ -24,7 +24,19 @@
 
   <main class="container">
     <div class="app-label">xSanNext</div>
-    <p class="label">Seu número:</p>
+    <div class="label-row">
+      <div class="label">Seu número:</div>
+      <div class="ahead-pill" id="aheadPill" title="À sua frente" aria-label="À sua frente">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 8a3 3 0 1 1 6 0 3 3 0 0 1-6 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M3 19a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12.5 19a6.5 6.5 0 0 1 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="aheadText">À sua frente:</span>
+        <b id="aheadCount">0</b>
+      </div>
+    </div>
     <div id="ticket" class="ticket">–</div>
     <div id="status" class="status">Aguardando chamada...</div>
     <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
