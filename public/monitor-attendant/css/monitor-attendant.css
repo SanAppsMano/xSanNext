@@ -764,6 +764,10 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.admin-panel .admin-section h4 {
+  color: #000;
+}
+
 .admin-panel .pref-toggle {
   display: flex;
   align-items: center;
@@ -772,6 +776,7 @@ body {
 
 .admin-panel .pref-toggle label {
   font-weight: 500;
+  color: #000;
 }
 
 .admin-panel .ticket-setter label {
