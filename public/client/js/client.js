@@ -242,7 +242,17 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
-  const { currentCall, callCounter = 0, ticketCounter, timestamp, attendant, missedNumbers = [], attendedNumbers = [], names = {} } = await res.json();
+  const {
+    currentCall,
+    callCounter = 0,
+    ticketCounter,
+    timestamp,
+    attendant,
+    missedNumbers = [],
+    attendedNumbers = [],
+    names = {},
+    priorityNumbers = [],
+  } = await res.json();
   const myName = names[ticketNumber];
 
   if (ticketCounter < ticketNumber) {
@@ -260,7 +270,11 @@ async function checkStatus() {
     return;
   }
 
-  if (callCounter >= ticketNumber && currentCall !== ticketNumber) {
+  if (
+    !priorityNumbers.includes(ticketNumber) &&
+    callCounter >= ticketNumber &&
+    currentCall !== ticketNumber
+  ) {
     const duration = callStartTs ? Date.now() - callStartTs : 0;
     const res = await safeFetch(`/.netlify/functions/cancelar?t=${tenantId}`, {
       method: "POST",
