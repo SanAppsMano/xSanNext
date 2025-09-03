@@ -232,6 +232,13 @@ async function getTicket(priority = false) {
   sendWelcomeNotification();
 }
 
+function renderAheadCount(value) {
+  const el = document.getElementById('aheadCount');
+  if (!el) { throw new Error('#aheadCount não encontrado'); }
+  const n = Math.max(0, Number(value) || 0);
+  el.textContent = String(n);
+}
+
 async function checkStatus() {
   if (!ticketNumber) return;
   if (!withinSchedule()) {
@@ -242,18 +249,43 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
+  const status = await res.json();
   const {
     currentCall,
     callCounter = 0,
     ticketCounter,
     timestamp,
     attendant,
+    cancelledNumbers = [],
     missedNumbers = [],
     attendedNumbers = [],
+    skippedNumbers = [],
+    offHoursNumbers = [],
     names = {},
     priorityNumbers = [],
-  } = await res.json();
+  } = status;
   const myName = names[ticketNumber];
+  const ahead = (() => {
+    const removed = new Set([
+      ...cancelledNumbers,
+      ...missedNumbers,
+      ...attendedNumbers,
+      ...skippedNumbers,
+      ...offHoursNumbers,
+    ].map(Number));
+    let count = 0;
+    for (let n = callCounter + 1; n < ticketNumber; n++) {
+      if (n !== currentCall && !removed.has(n)) count++;
+    }
+    const priNums = priorityNumbers.map(Number);
+    if (!priNums.includes(ticketNumber)) {
+      for (const pn of priNums) {
+        if (pn >= ticketNumber && !removed.has(pn)) count++;
+      }
+    }
+    return count;
+  })();
+  renderAheadCount(ahead);
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
