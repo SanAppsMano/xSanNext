@@ -232,6 +232,13 @@ async function getTicket(priority = false) {
   sendWelcomeNotification();
 }
 
+function renderAheadCount(value) {
+  const el = document.getElementById('aheadCount');
+  if (!el) { throw new Error('#aheadCount não encontrado'); }
+  const n = Math.max(0, Number(value) || 0);
+  el.textContent = String(n);
+}
+
 async function checkStatus() {
   if (!ticketNumber) return;
   if (!withinSchedule()) {
@@ -242,6 +249,7 @@ async function checkStatus() {
   }
   const res = await safeFetch(`/.netlify/functions/status?t=${tenantId}`);
   if (!res) return;
+  const status = await res.json();
   const {
     currentCall,
     callCounter = 0,
@@ -252,8 +260,10 @@ async function checkStatus() {
     attendedNumbers = [],
     names = {},
     priorityNumbers = [],
-  } = await res.json();
+  } = status;
   const myName = names[ticketNumber];
+  const ahead = status.ahead ?? status.queueAhead ?? status.remaining ?? 0;
+  renderAheadCount(ahead);
 
   if (ticketCounter < ticketNumber) {
     handleExit("Fila reiniciada. Entre novamente.");
