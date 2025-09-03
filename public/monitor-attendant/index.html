@@ -145,32 +145,49 @@
 
     <!-- Painel de Chamada -->
     <section class="call-panel">
-      <div class="display">
-        Chamando: <span id="current-call">–</span>
-        <small id="current-id" class="id-label"></small>
-      </div>
-      <div class="btn-row">
-        <button id="btn-next" class="btn btn-primary">Próximo</button>
-        <button id="btn-next-priority" class="btn btn-warning">Próximo Preferencial</button>
-      </div>
-      <div class="btn-row">
-        <button id="btn-repeat" class="btn btn-secondary">Repetir</button>
-        <button id="btn-attended" class="btn btn-success">Atendido</button>
-      </div>
-      <div class="btn-row">
-        <button id="btn-new-manual" class="btn btn-secondary">Ticket</button>
-        <button id="btn-new-priority" class="btn btn-warning">Ticket Preferencial</button>
-      </div>
-      <div class="status-info">
-        <span class="waiting-total">Em espera: <span id="waiting-count">–</span> clientes</span>
-        <div class="waiting-details">
-          <span class="badge normal">Normais: <span id="waiting-normal">0</span></span>
-          <span class="badge priority">Preferenciais: <span id="waiting-priority">0</span></span>
+      <div class="queue-summary">
+        <div class="calling">Chamando: <span id="calling">–</span><small id="current-id" class="id-label"></small></div>
+        <div class="waiting">Em espera: <span id="qTotal">–</span> clientes</div>
+        <div class="chips">
+          <span class="chip normal">Normais: <span id="qNorm">0</span></span>
+          <span class="chip pref">Preferenciais: <span id="qPref">0</span></span>
         </div>
       </div>
-      <div class="btn-row">
-        <button id="btn-reset" class="btn btn-warning">Resetar Tickets</button>
-        <button id="btn-report" class="btn btn-secondary">Relatório</button>
+      <div class="btn-grid">
+        <button id="btn-next" class="btn btn-primary" aria-label="Chamar próximo ticket" title="Chamar próximo ticket">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Próximo</span>
+        </button>
+        <button id="btn-next-pref" class="btn btn-preferential" aria-label="Chamar próximo ticket preferencial" title="Chamar próximo ticket preferencial">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z" fill="currentColor"/></svg>
+          <span>Próximo Preferencial</span>
+        </button>
+        <button id="btn-repeat" class="btn btn-ghost" aria-label="Repetir chamada" title="Repetir chamada">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 9A8 8 0 1 0 4 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Repetir</span>
+        </button>
+        <button id="btn-done" class="btn btn-success" aria-label="Marcar como atendido" title="Marcar como atendido">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Atendido</span>
+        </button>
+        <button id="btn-ticket" class="btn btn-ghost" aria-label="Gerar ticket" title="Gerar ticket">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 7v10M16 7v10M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span>Ticket</span>
+        </button>
+        <button id="btn-ticket-pref" class="btn btn-preferential" aria-label="Gerar ticket preferencial" title="Gerar ticket preferencial">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 7v10M16 7v10M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M5 2l1.5 3 3 .4-2.2 2.2.5 3-2.8-1.5-2.8 1.5.5-3L0 5.4l3-.4z" fill="currentColor"/></svg>
+          <span>Ticket Preferencial</span>
+        </button>
+      </div>
+      <div class="footer-buttons">
+        <button id="btn-report" class="btn btn-outline" aria-label="Gerar relatório" title="Gerar relatório">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 13l3 3 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Relatório</span>
+        </button>
+        <button id="btn-reset" class="btn btn-danger" aria-label="Resetar tickets" title="Resetar tickets">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 6v14h8V6" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M10 6V4h4v2" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>
+          <span>Resetar Tickets</span>
+        </button>
       </div>
     </section>
 
