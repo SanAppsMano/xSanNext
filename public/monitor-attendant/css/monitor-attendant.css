@@ -11,6 +11,7 @@
   --muted:      #666;
   --radius:     6px;
   --font:       'Helvetica Neue', Arial, sans-serif;
+  --normal-bg:  #e0e0e0;
 }
 
 * {
@@ -252,7 +253,7 @@ body {
 .queue-summary .chip {
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius);
-  background: #e0e0e0;
+  background: var(--normal-bg);
 }
 .queue-summary .chip.pref {
   background: var(--warning);
@@ -295,6 +296,10 @@ body {
 .btn-preferential {
   background: var(--warning);
   color: #333;
+}
+.btn-normal {
+  background: var(--normal-bg);
+  color: var(--text);
 }
 .btn-ghost {
   background: #fff;
