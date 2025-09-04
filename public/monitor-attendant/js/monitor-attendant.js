@@ -543,6 +543,7 @@ function startBouncingCompanyName(text) {
   }
 
   async function cancelTicket(n) {
+    if (!confirm(`Deseja cancelar o ticket ${n}?`)) return;
     const t = token;
     try {
       await fetch(`/.netlify/functions/cancelar?t=${t}`, {
