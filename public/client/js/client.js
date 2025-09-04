@@ -305,6 +305,11 @@ async function checkStatus() {
     return;
   }
 
+  if (cancelledNumbers.includes(ticketNumber)) {
+    handleExit("Seu atendimento foi cancelado.");
+    return;
+  }
+
   if (missedNumbers.includes(ticketNumber)) {
     handleExit("Você perdeu a vez.");
     return;
