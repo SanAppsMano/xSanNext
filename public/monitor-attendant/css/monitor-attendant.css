@@ -470,11 +470,12 @@ body {
   flex-shrink: 0;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
 
 
 /* Bloco de textos (SanNext + empresa) */
@@ -785,6 +786,21 @@ body {
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
   margin-bottom: 0;
+}
+
+/* QR Code no cabeçalho */
+.header .qrcode-wrapper #qrcode canvas,
+.header .qrcode-wrapper #qrcode img {
+  width: 64px;
+  height: 64px;
+}
+
+@media (min-width: 600px) {
+  .header .qrcode-wrapper #qrcode canvas,
+  .header .qrcode-wrapper #qrcode img {
+    width: 96px;
+    height: 96px;
+  }
 }
 
 /* Painel administrativo lateral */
