@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>xSanNext Cliente</title>
+  <link rel="stylesheet" href="css/client.css"/>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0N82XM9NM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E0N82XM9NM');
+  </script>
+</head>
+<body>
+  
+  <header class="client-header">
+    <div class="logo"></div>
+    <div class="company-name" id="company-name">–</div>
+  </header>
+
+  <main class="container">
+    <div class="app-label">xSanNext</div>
+    <div class="label-row">
+      <div class="label">Seu número:</div>
+      <div class="ahead-pill" id="aheadPill" title="À sua frente" aria-label="À sua frente">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 8a3 3 0 1 1 6 0 3 3 0 0 1-6 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M3 19a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12.5 19a6.5 6.5 0 0 1 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="aheadText">À sua frente:</span>
+        <b id="aheadCount">0</b>
+      </div>
+    </div>
+    <div id="ticket" class="ticket">–</div>
+    <div id="status" class="status">Aguardando chamada...</div>
+    <button id="btn-cancel" class="btn-cancel" disabled>Desistir da fila</button>
+    <button id="btn-check" class="btn-check" hidden>Verificar senha</button>
+    <button id="btn-silence" class="btn-silence" hidden>Silenciar alerta</button>
+    <audio id="alert-sound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+  </main>
+
+  <div id="overlay">
+    <div class="ticket-selection">
+      <h2>Escolha o tipo de ticket</h2>
+      <div class="ticket-options">
+        <button class="ticket-option" id="btn-normal">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-7.5 8a7.5 7.5 0 0 1 15 0"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span>Normal</span>
+        </button>
+        <button class="ticket-option" id="btn-preferencial">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M10 10a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm-5.5 9a5.5 5.5 0 0 1 11 0"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M19 5l.9 1.8 2 .3-1.45 1.4.34 2.1L19 9.8l-1.79.9.34-2.1L16.1 7.1l2-.3L19 5Z"
+                    fill="currentColor" />
+            </svg>
+          </span>
+          <span>Preferencial</span>
+        </button>
+      </div>
+      <p class="hint">Toque em uma opção para continuar.</p>
+    </div>
+  </div>
+
+  <script src="js/client.js"></script>
+</body>
+</html>
