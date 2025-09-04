@@ -87,6 +87,10 @@
     </div>
   </div>
   <button id="admin-toggle" class="btn btn-secondary" aria-label="Administração">⚙️</button>
+  <div class="qrcode-wrapper">
+    <div id="qrcode"></div>
+    <button id="btn-qr-pdf" class="btn btn-secondary" hidden>PDF</button>
+  </div>
   <nav id="admin-panel" class="admin-panel" hidden>
     <h3>Administração</h3>
     <div class="ticket-setter admin-section">
@@ -126,16 +130,6 @@
 
   <!-- Conteúdo Principal -->
   <main class="main" hidden>
-    <!-- Seção de QR Code -->
-    <section class="qrcode-panel">
-      <h2>QR Code</h2>
-      <div class="qrcode-wrapper">
-        <div id="qrcode"></div>
-        <button id="btn-qr-pdf" class="btn btn-secondary" hidden>PDF</button>
-      </div>
-      <p>Aponte a câmera do celular para este QR para entrar na fila.</p>
-    </section>
-
     <!-- Painel de Identificador -->
     <section class="id-panel">
       <label for="attendant-id">Identificador:</label>

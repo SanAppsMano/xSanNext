@@ -183,23 +183,6 @@ body {
   display: block;
 }
 
-/* Layout and buttons styling as before */
-.header {
-  background: var(--primary);
-  color: #fff;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-.user {
-  font-size: 1rem;
-}
-
 .header-schedule {
   margin-left: 0.5rem;
   font-size: 0.75rem;
@@ -441,20 +424,14 @@ body {
 #login-overlay[hidden] {
   display: none !important;
 }
-.header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-}
-
 /* Header principal */
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Logo à esquerda, botão à direita */
   padding: 0.75rem 1rem;
   background-color: #005a9c;
+  color: #fff;
+  gap: 0.75rem;
 }
 
 /* Contêiner da logo + textos */
@@ -462,6 +439,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1;
 }
 
 .logo-icon {
@@ -469,13 +447,6 @@ body {
   height: 24px;
   flex-shrink: 0;
 }
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 
 /* Bloco de textos (SanNext + empresa) */
 .logo-texts {
@@ -774,8 +745,7 @@ body {
 
 /* Botão de PDF do QR Code */
 .qrcode-wrapper {
-  display: inline-flex;
-  flex-direction: column;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
 }
@@ -785,6 +755,21 @@ body {
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
   margin-bottom: 0;
+}
+
+/* QR Code no cabeçalho */
+.header .qrcode-wrapper #qrcode canvas,
+.header .qrcode-wrapper #qrcode img {
+  width: 64px;
+  height: 64px;
+}
+
+@media (min-width: 600px) {
+  .header .qrcode-wrapper #qrcode canvas,
+  .header .qrcode-wrapper #qrcode img {
+    width: 96px;
+    height: 96px;
+  }
 }
 
 /* Painel administrativo lateral */
@@ -914,10 +899,6 @@ body {
 
 .admin-panel[hidden] {
   display: none;
-}
-
-#admin-toggle {
-  margin-left: auto;
 }
 
 #clone-revoke {
