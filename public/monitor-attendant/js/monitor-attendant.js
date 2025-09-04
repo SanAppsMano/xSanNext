@@ -630,22 +630,22 @@ function startBouncingCompanyName(text) {
         !skippedNums.includes(n) &&
         !offHoursNums.includes(n)
       );
-      if (btnNextPref) {
-        const hasPriority = priorityWaiting.length > 0 || prioritySet.has(currentCallNum);
-        btnNextPref.disabled = !hasPriority;
-        btnNextPref.title = hasPriority ? '' : 'Sem tickets preferenciais na fila';
-      }
       const waitingPriority = priorityWaiting.length;
       const waitingNormal = Math.max(0, waiting - waitingPriority);
-      const hasQueue = waitingPriority + waitingNormal > 0;
-      const hasAnyTicket = hasQueue || currentCallNum > 0;
-      if (btnNext) {
-        btnNext.disabled = !hasQueue;
-        btnNext.title = hasQueue ? '' : 'Sem tickets na fila';
+      const hasPriorityTicket = waitingPriority > 0 || prioritySet.has(currentCallNum);
+      const hasNormalTicket = waitingNormal > 0 || (currentCallNum > 0 && !prioritySet.has(currentCallNum));
+      const hasAnyTicket = hasPriorityTicket || hasNormalTicket;
+      if (btnNextPref) {
+        btnNextPref.disabled = !hasPriorityTicket;
+        btnNextPref.title = hasPriorityTicket
+          ? ''
+          : (hasAnyTicket ? 'Sem tickets preferenciais na fila' : 'Sem tickets na fila');
       }
-      if (btnNextPref && !hasAnyTicket) {
-        btnNextPref.disabled = true;
-        btnNextPref.title = 'Sem tickets na fila';
+      if (btnNext) {
+        btnNext.disabled = !hasNormalTicket;
+        btnNext.title = hasNormalTicket
+          ? ''
+          : (hasAnyTicket ? 'Sem tickets normais na fila' : 'Sem tickets na fila');
       }
       if (btnRepeat) {
         btnRepeat.disabled = !hasAnyTicket;
