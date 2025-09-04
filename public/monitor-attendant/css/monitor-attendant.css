@@ -183,11 +183,6 @@ body {
   display: block;
 }
 
-.header-schedule {
-  margin-left: 0.5rem;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
-}
 
 .main {
   flex: 1;
@@ -769,6 +764,7 @@ body {
 .header .qrcode-wrapper #qrcode img {
   width: 64px;
   height: 64px;
+  border: 2px solid #fff;
 }
 
 @media (min-width: 600px) {
