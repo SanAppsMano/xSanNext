@@ -682,8 +682,8 @@ function startBouncingCompanyName(text) {
         btnRepeat.title = hasCallingTicket ? '' : 'Sem ticket em chamada';
       }
       if (btnDone) {
-        btnDone.disabled = !hasWaitingTicket;
-        btnDone.title = hasWaitingTicket ? '' : 'Sem tickets na fila';
+        btnDone.disabled = !hasCallingTicket;
+        btnDone.title = hasCallingTicket ? '' : 'Sem ticket em chamada';
       }
       if (btnReport) {
         btnReport.disabled = !hasAnyTicket;
