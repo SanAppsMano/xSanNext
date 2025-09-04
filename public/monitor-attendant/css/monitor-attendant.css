@@ -428,7 +428,7 @@ body {
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 0.75rem 1rem;
   background-color: #005a9c;
   color: #fff;
@@ -753,10 +753,8 @@ body {
 
 .header-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 #btn-qr-pdf {
