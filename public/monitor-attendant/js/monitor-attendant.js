@@ -662,6 +662,7 @@ function startBouncingCompanyName(text) {
       const hasPriorityTicket = waitingPriority > 0 || prioritySet.has(currentCallNum);
       const hasNormalTicket = waitingNormal > 0 || (currentCallNum > 0 && !prioritySet.has(currentCallNum));
       const hasWaitingTicket = hasPriorityTicket || hasNormalTicket;
+      const hasCallingTicket = currentCallNum > 0;
       const hasFinishedTicket = cancelledNums.length > 0 || missedNums.length > 0 || attendedNums.length > 0;
       const hasAnyTicket = hasWaitingTicket || hasFinishedTicket;
       if (btnNextPref) {
@@ -677,8 +678,8 @@ function startBouncingCompanyName(text) {
           : (hasWaitingTicket ? 'Sem tickets normais na fila' : 'Sem tickets na fila');
       }
       if (btnRepeat) {
-        btnRepeat.disabled = !hasWaitingTicket;
-        btnRepeat.title = hasWaitingTicket ? '' : 'Sem tickets na fila';
+        btnRepeat.disabled = !hasCallingTicket;
+        btnRepeat.title = hasCallingTicket ? '' : 'Sem ticket em chamada';
       }
       if (btnDone) {
         btnDone.disabled = !hasWaitingTicket;
@@ -1266,6 +1267,7 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
+      if (!currentCallNum) return;
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
