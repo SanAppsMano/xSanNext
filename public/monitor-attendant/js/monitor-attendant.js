@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerEl       = document.querySelector('.header');
   const mainEl         = document.querySelector('.main');
   const bodyEl         = document.body;
-  const headerSchedule = document.getElementById('header-schedule');
 
   // Onboarding
   const onboardLabel    = document.getElementById('onboard-label');
@@ -76,17 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   toggleInterval(use1Checkbox, start1Input, end1Input);
   toggleInterval(use2Checkbox, start2Input, end2Input);
-
-  // Atualiza relógio no cabeçalho
-  function updateClock() {
-    const now = new Date();
-    headerSchedule.textContent = now.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-  updateClock();
-  setInterval(updateClock, 60000);
 
   const loginCompany  = document.getElementById('login-company');
   const loginPassword = document.getElementById('login-password');
