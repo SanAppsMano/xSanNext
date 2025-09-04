@@ -166,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRevokeClone = document.getElementById('clone-revoke');
   const adminToggle    = document.getElementById('admin-toggle');
   const adminPanel     = document.getElementById('admin-panel');
-  const cloneListEl    = document.getElementById('clone-list');
   const nextTicketInput= document.getElementById('next-ticket');
   const lastTicketSpan = document.getElementById('last-ticket');
   const setTicketBtn   = document.getElementById('set-ticket');
@@ -1190,19 +1189,6 @@ function startBouncingCompanyName(text) {
           history.replaceState(null, '', '/');
           location.href = '/';
         }
-      } else if (clonesPanel && cloneListEl) {
-        const others = clones.filter(c => c !== cloneId);
-        cloneListEl.innerHTML = '';
-        clonesPanel.hidden = others.length === 0;
-        others.forEach((id, idx) => {
-          const li = document.createElement('li');
-          const btn = document.createElement('button');
-          btn.className = 'btn btn-secondary';
-          btn.textContent = `Revogar ${idx + 1}`;
-          btn.onclick = () => revokeClone(t, id);
-          li.appendChild(btn);
-          cloneListEl.appendChild(li);
-        });
       }
     } catch (e) {
       console.error('listClones', e);
