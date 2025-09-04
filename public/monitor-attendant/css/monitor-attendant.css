@@ -325,6 +325,10 @@ body {
   grid-template-columns: 1fr;
   gap: 0.5rem;
 }
+
+.footer-buttons {
+  margin-top: 1rem;
+}
 @media (min-width: 480px) {
   .btn-grid,
   .footer-buttons {
