@@ -22,14 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sessionStorage.setItem('cloneId', cloneId);
   }
   const cloneSeqKey   = `cloneSeq_${cloneId}`;
+  const isCloneParam  = urlParams.get('clone') === '1';
   let cloneSeq        = null;
-  if (urlParams.get('clone') === '1') {
+  if (isCloneParam) {
     cloneSeq = urlParams.get('n') || localStorage.getItem(cloneSeqKey);
     if (cloneSeq) localStorage.setItem(cloneSeqKey, cloneSeq);
-  } else {
-    cloneSeq = localStorage.getItem(cloneSeqKey);
   }
-  const isClone       = cloneSeq !== null;
+  const isClone       = isCloneParam;
   const storedConfig  = localStorage.getItem('monitorConfig');
   let cfg             = storedConfig ? JSON.parse(storedConfig) : null;
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
