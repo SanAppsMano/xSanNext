@@ -246,15 +246,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnChangePw)     btnChangePw.hidden = true;
     if (adminToggle)     { adminToggle.remove(); }
     if (adminPanel)      { adminPanel.remove(); }
-    if (btnRevokeClone) {
-      btnRevokeClone.hidden = false;
-      if (cloneSeq) btnRevokeClone.textContent = `Revogar${cloneSeq}`;
-      btnRevokeClone.onclick = () => revokeClone(token, cloneId);
-    }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
-  } else if (btnRevokeClone) {
-    btnRevokeClone.hidden = true;
+  }
+  if (btnRevokeClone) {
+    const adminBtn = document.getElementById('admin-toggle');
+    const adminVisible = adminBtn && !adminBtn.hidden;
+    btnRevokeClone.hidden = adminVisible;
+    if (!btnRevokeClone.hidden) {
+      if (cloneSeq) btnRevokeClone.textContent = `Revogar${cloneSeq}`;
+      btnRevokeClone.onclick = () => revokeClone(token, cloneId);
+    } else {
+      btnRevokeClone.onclick = null;
+    }
   }
 
   btnEditSchedule.onclick = () => {
