@@ -542,6 +542,20 @@ function startBouncingCompanyName(text) {
     currentIdEl.textContent   = attendantId || '';
   }
 
+  async function cancelTicket(n) {
+    const t = token;
+    try {
+      await fetch(`/.netlify/functions/cancelar?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket: n, reason: 'desk' })
+      });
+      await refreshAll(t);
+    } catch (e) {
+      console.error('Erro ao cancelar ticket:', e);
+    }
+  }
+
   function updateQueueList() {
     if (!queueListEl) return;
     queueListEl.innerHTML = '';
@@ -563,7 +577,19 @@ function startBouncingCompanyName(text) {
       let text = nm ? `${n} - ${nm}` : String(n);
       text += prioritySet.has(n) ? ' - Preferencial' : ' - Normal';
       if (offHoursSet.has(n)) text += ' - Fora do horário';
-      li.textContent = text;
+
+      const span = document.createElement('span');
+      span.textContent = text;
+      li.appendChild(span);
+
+      const btn = document.createElement('button');
+      btn.className = 'cancel-btn';
+      btn.textContent = '×';
+      btn.title = 'Cancelar ticket';
+      btn.setAttribute('aria-label', `Cancelar ticket ${n}`);
+      btn.onclick = () => cancelTicket(n);
+      li.appendChild(btn);
+
       queueListEl.appendChild(li);
     });
   }
