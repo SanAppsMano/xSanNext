@@ -245,8 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnChangePw)     btnChangePw.hidden = true;
     if (adminToggle)     { adminToggle.remove(); }
     if (adminPanel)      { adminPanel.remove(); }
-    const qrPanel = document.querySelector('.qrcode-panel');
-    if (qrPanel) qrPanel.style.display = 'none';
+    const qrWrapper = document.querySelector('.qrcode-wrapper');
+    if (qrWrapper) qrWrapper.style.display = 'none';
   }
 
   btnEditSchedule.onclick = () => {
@@ -377,22 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnQrPdf      = document.getElementById('btn-qr-pdf');
   let currentClientUrl = '';
-  let qrReady = false;
 
-  function updatePdfBtnVisibility() {
-    if (!qrReady) {
-      btnQrPdf.hidden = true;
-      return;
-    }
-    const rect = qrContainer.getBoundingClientRect();
-    const inView = rect.bottom > 0 && rect.top < window.innerHeight;
-    btnQrPdf.hidden = !inView;
-  }
-
-  window.addEventListener('scroll', updatePdfBtnVisibility);
-  window.addEventListener('resize', updatePdfBtnVisibility);
   btnQrPdf.addEventListener('click', generateQrPdf);
-  updatePdfBtnVisibility();
 
   let currentCallNum = 0; // último número chamado exibido
   let ticketNames    = {};
@@ -423,16 +409,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
  /** Renderiza o QR Code e configura interação */
 function renderQRCode(tId) {
-  qrContainer.innerHTML = '';
-  qrOverlayContent.innerHTML = '';
+    qrContainer.innerHTML = '';
+    qrOverlayContent.innerHTML = '';
 
-  const urlCliente = `${location.origin}/client/?t=${tId}&empresa=${encodeURIComponent(cfg.empresa)}`;
-  new QRCode(qrContainer,     { text: urlCliente, width: 128, height: 128 });
-  new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
+    const urlCliente = `${location.origin}/client/?t=${tId}&empresa=${encodeURIComponent(cfg.empresa)}`;
+    new QRCode(qrContainer,     { text: urlCliente, width: 128, height: 128 });
+    new QRCode(qrOverlayContent, { text: urlCliente, width: 256, height: 256 });
 
-  currentClientUrl = urlCliente;
-  qrReady = true;
-  updatePdfBtnVisibility();
+    currentClientUrl = urlCliente;
+    btnQrPdf.hidden = false;
 
   qrContainer.style.cursor = 'pointer';
   qrContainer.onclick = () =>
@@ -494,7 +479,7 @@ function generateQrPdf() {
         <h1>${cfg.empresa || ''}</h1>
         <h2>Entre na fila</h2>
         <img src="${qrDataUrl}" alt="QR Code" style="width:200px;height:200px;" />
-        <p>1. Abra a câmera do seu celular.<br>2. Aponte para o QR code.<br>3. Siga o link para pegar sua senha.</p>
+        <p>1. Abra a câmera do seu celular.<br>2. Siga o link para pegar sua senha.</p>
         <p>${currentClientUrl}</p>
       </body>
       </html>`;
@@ -520,16 +505,14 @@ function generateQrPdf() {
   doc.text('Entre na fila', pageWidth / 2, y, { align: 'center' });
   y += 10;
   doc.addImage(qrDataUrl, 'PNG', pageWidth / 2 - 35, y, 70, 70);
-  y += 80;
-  doc.setFontSize(12);
-  doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
-  y += 6;
-  doc.text('2. Aponte para o QR code.', pageWidth / 2, y, { align: 'center' });
-  y += 6;
-  doc.text('3. Siga o link para pegar sua senha.', pageWidth / 2, y, { align: 'center' });
-  y += 10;
-  doc.setFontSize(10);
-  doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
+    y += 80;
+    doc.setFontSize(12);
+    doc.text('1. Abra a câmera do seu celular.', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.text('2. Siga o link para pegar sua senha.', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(currentClientUrl, pageWidth / 2, y, { align: 'center' });
   const empresaSlug = sanitizeFileName(cfg.empresa);
   doc.save(`${empresaSlug}-instrucoes-fila.pdf`);
 }
