@@ -244,6 +244,17 @@ button {
   color: #fff;
 }
 
+#btn-normal {
+  border-color: #b0b0b0;
+  background: #b0b0b0;
+  color: #fff;
+}
+
+#btn-normal:hover {
+  background: #999;
+  border-color: #999;
+}
+
 .ticket-selection .hint {
   font-size: 0.875rem;
   color: var(--muted);
