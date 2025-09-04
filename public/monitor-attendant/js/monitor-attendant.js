@@ -162,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnEditSchedule= document.getElementById('btn-edit-schedule');
   const btnClone       = document.getElementById('btn-clone');
   const btnChangePw    = document.getElementById('btn-change-password');
-  const btnRevokeClone = document.getElementById('clone-revoke');
   const adminToggle    = document.getElementById('admin-toggle');
   const adminPanel     = document.getElementById('admin-panel');
   const cloneListEl    = document.getElementById('clone-list');
@@ -246,15 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnChangePw)     btnChangePw.hidden = true;
     if (adminToggle)     { adminToggle.remove(); }
     if (adminPanel)      { adminPanel.remove(); }
-    if (btnRevokeClone) {
-      btnRevokeClone.hidden = false;
-      if (cloneSeq) btnRevokeClone.textContent = `Revogar${cloneSeq}`;
-      btnRevokeClone.onclick = () => revokeClone(token, cloneId);
-    }
     const qrPanel = document.querySelector('.qrcode-panel');
     if (qrPanel) qrPanel.style.display = 'none';
-  } else if (btnRevokeClone) {
-    btnRevokeClone.hidden = true;
   }
 
   btnEditSchedule.onclick = () => {
