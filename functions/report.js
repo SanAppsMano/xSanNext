@@ -29,6 +29,7 @@ export async function handler(event) {
       redis.smembers(prefix + "attendedSet"),
       redis.hgetall(prefix + "ticketNames"),
       redis.smembers(prefix + "offHoursSet"),
+      redis.smembers(prefix + "skippedSet"),
       redis.smembers(prefix + "priorityHistory"),
       redis.get(prefix + "ticketCounter"),
     ]);
@@ -43,6 +44,7 @@ export async function handler(event) {
       attendedSet,
       nameMap,
       offHoursSet,
+      skippedList,
       priorityHistory,
       ticketCounterRaw,
     ] = data;
@@ -65,6 +67,21 @@ export async function handler(event) {
   const missedNums    = missedSet.map(n => Number(n));
   const attendedNums  = attendedSet.map(n => Number(n));
   let offHoursNums    = offHoursSet.map(n => Number(n));
+  let skippedNums     = skippedList.map(n => Number(n));
+
+  if (skippedNums.length) {
+    const keys   = skippedNums.map(n => prefix + `ticketTime:${n}`);
+    const exists = await redis.mget(...keys);
+    const toKeep = [];
+    const toRem  = [];
+    skippedNums.forEach((n, i) => {
+      if (exists[i]) toRem.push(String(n));
+      else           toKeep.push(n);
+    });
+    if (toRem.length) await redis.srem(prefix + "skippedSet", ...toRem);
+    skippedNums = toKeep;
+  }
+  const skippedSet = new Set(skippedNums);
   if (offHoursSet.length) {
     const [schedRaw, monitorRaw] = await redis.mget(
       prefix + "schedule",
@@ -110,8 +127,13 @@ export async function handler(event) {
     ...priorityHistory.map(n => Number(n))
   ]);
 
+  // remove números pulados e evita que entrem no total
+  skippedNums.forEach(n => ticketNumbers.delete(n));
+
   for (let i = 1; i <= ticketCounter; i++) {
-    ticketNumbers.add(i);
+    if (!skippedSet.has(i)) {
+      ticketNumbers.add(i);
+    }
   }
 
   const nums = Array.from(ticketNumbers).sort((a, b) => a - b);
