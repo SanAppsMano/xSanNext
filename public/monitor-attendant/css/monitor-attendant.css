@@ -412,6 +412,18 @@ body {
   padding: 0.5rem 0;
   border-bottom: 1px solid #eee;
 }
+.list li .cancel-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+.list li .cancel-btn:hover {
+  color: var(--danger);
+}
 .list li.missed {
   color: var(--warning);
 }
