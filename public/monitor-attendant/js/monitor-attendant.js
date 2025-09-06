@@ -500,16 +500,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   importConfirm?.addEventListener('click', async () => {
     const t = token;
-    const normals = importItems.filter((i) => !i.priority).map((i) => i.name);
-    const prefs = importItems.filter((i) => i.priority).map((i) => i.name);
+    const items = importItems.map((i) => ({ name: i.name, preferential: i.priority }));
     try {
       const res = await fetch(`/.netlify/functions/enqueueBatch?t=${t}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ normal: normals, preferential: prefs })
+        body: JSON.stringify({ items })
       });
       if (!res.ok) throw new Error();
-      alert(`Importados: ${importItems.length} (${prefs.length} preferenciais, ${normals.length} normais)`);
+      const prefCount = items.filter((i) => i.preferential).length;
+      const normCount = items.length - prefCount;
+      alert(`Importados: ${items.length} (${prefCount} preferenciais, ${normCount} normais)`);
       importModal.hidden = true;
       resetImport();
       refreshAll(t);
