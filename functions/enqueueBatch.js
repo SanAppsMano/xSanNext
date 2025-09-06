@@ -16,9 +16,8 @@ export async function handler(event) {
       body = JSON.parse(event.body || "{}");
     } catch {}
 
-    const normal = Array.isArray(body.normal) ? body.normal : [];
-    const preferential = Array.isArray(body.preferential || body.priority) ? (body.preferential || body.priority) : [];
-    if (normal.length === 0 && preferential.length === 0) {
+    const items = Array.isArray(body.items) ? body.items : [];
+    if (items.length === 0) {
       return { statusCode: 400, body: "Empty list" };
     }
 
@@ -33,6 +32,8 @@ export async function handler(event) {
 
     const prefix = `tenant:${tenantId}:`;
     let total = 0;
+    let prefCount = 0;
+    let normCount = 0;
     const process = async (name, isPriority) => {
       const ticketNumber = await redis.incr(prefix + "ticketCounter");
       const ts = Date.now();
@@ -54,16 +55,23 @@ export async function handler(event) {
       total++;
     };
 
-    for (const name of preferential) {
-      await process(name, true);
-    }
-    for (const name of normal) {
-      await process(name, false);
+    for (const item of items) {
+      if (!item) continue;
+      let { name, preferential: pref } = item;
+      name = String(name || "").trim();
+      let isPriority = Boolean(pref);
+      if (name.endsWith("*")) {
+        isPriority = true;
+        name = name.slice(0, -1).trim();
+      }
+      await process(name, isPriority);
+      if (isPriority) prefCount++;
+      else normCount++;
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, imported: total, preferential: preferential.length, normal: normal.length }),
+      body: JSON.stringify({ ok: true, imported: total, preferential: prefCount, normal: normCount }),
     };
   } catch (error) {
     return errorHandler(error);

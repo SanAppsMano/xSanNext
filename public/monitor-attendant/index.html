@@ -198,21 +198,21 @@
     </section>
 
     <!-- Histórico de Cancelados -->
-    <section class="history-panel">
+    <section class="history-panel" hidden>
       <h2>Cancelados (<span id="cancel-count">0</span>)</h2>
       <div id="cancel-thumbs" class="cancel-thumbs"></div>
       <ul id="cancel-list" class="list"></ul>
     </section>
 
     <!-- Histórico - Perdeu a Vez -->
-    <section class="history-panel">
+    <section class="history-panel" hidden>
       <h2>Perdeu a Vez (<span id="missed-count">0</span>)</h2>
       <div id="missed-thumbs" class="missed-thumbs"></div>
       <ul id="missed-list" class="list"></ul>
     </section>
 
     <!-- Histórico de Atendidos -->
-    <section class="history-panel">
+    <section class="history-panel" hidden>
       <h2>Atendidos (<span id="attended-count">0</span>)</h2>
       <div id="attended-thumbs" class="attended-thumbs"></div>
       <ul id="attended-list" class="list"></ul>
@@ -319,7 +319,7 @@
         <div id="import-src-error" class="error"></div>
       </div>
       <div id="import-step-preview" hidden>
-        <p class="note" id="import-note">A lista será adicionada ao FINAL das filas atuais (Normais/Preferenciais), preservando a ordem de quem já possui ticket.</p>
+        <p class="note" id="import-note">A lista será adicionada ao FINAL da Fila Virtual, mantendo a ordem do arquivo.</p>
         <div id="import-dup-box" class="error" hidden>
           Há nomes idênticos (ignorando *). Para evitar confusão no Monitor, edite sua lista e acrescente um diferencial (sobrenome, apelido ou código).
           <table id="import-dup-table"></table>
