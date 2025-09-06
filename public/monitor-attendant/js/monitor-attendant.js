@@ -137,6 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendedListEl = document.getElementById('attended-list');
   const attendedThumbsEl = document.getElementById('attended-thumbs');
   const attendedCountEl  = document.getElementById('attended-count');
+  const cancelPanel   = cancelListEl.closest('section');
+  const missedPanel   = missedListEl.closest('section');
+  const attendedPanel = attendedListEl.closest('section');
   const queueListEl    = document.getElementById('queue-list');
   const btnNext        = document.getElementById('btn-next');
   const btnNextPref    = document.getElementById('btn-next-pref');
@@ -912,6 +915,10 @@ function startBouncingCompanyName(text) {
         div.textContent = n;
         attendedThumbsEl.appendChild(div);
       });
+
+      cancelPanel.hidden = cancelledCount === 0;
+      missedPanel.hidden = missedCount === 0;
+      attendedPanel.hidden = attendedCount === 0;
 
       updateQueueList();
 
