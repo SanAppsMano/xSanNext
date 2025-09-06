@@ -1,6 +1,14 @@
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
-import sanitizeEmpresa from './utils/sanitizeEmpresa.js';
+
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {

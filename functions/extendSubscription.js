@@ -1,13 +1,21 @@
 // functions/extendSubscription.js
-import { Redis } from '@upstash/redis';
-import sanitizeEmpresa from './utils/sanitizeEmpresa.js';
+const { Redis } = require('@upstash/redis');
 
 const redisExt = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN
 });
 
-export async function handler(event) {
+function sanitizeEmpresa(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método não permitido' }) };
   }
@@ -61,4 +69,4 @@ export async function handler(event) {
       body: JSON.stringify({ error: err.message })
     };
   }
-}
+};
