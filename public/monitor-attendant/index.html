@@ -11,6 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- jsPDF para exportação em PDF -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- Biblioteca para leitura de XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0N82XM9NM"></script>
   <script>
@@ -109,6 +111,11 @@
       <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
       <button id="btn-clone" class="btn btn-secondary">Clonar Atendente</button>
       <button id="btn-change-password" class="btn btn-secondary">Trocar Senha</button>
+    </div>
+
+    <div class="admin-section" id="queue-config-section">
+      <h4>Configuração da Fila</h4>
+      <button id="btn-import-clients" class="btn btn-secondary">Importar lista de clientes</button>
     </div>
 
     <div class="admin-section danger">
@@ -298,6 +305,33 @@
       </div>
       <button id="password-save">Salvar</button>
       <div id="password-error" class="error"></div>
+    </div>
+  </div>
+
+  <!-- Modal de Importação de Clientes -->
+  <div id="import-modal" hidden>
+    <div class="modal-content">
+      <h2>Importar lista de clientes</h2>
+      <div id="import-step-source">
+        <input type="file" id="import-file" accept=".txt,.csv,.xlsx" />
+        <textarea id="import-text" placeholder="Cole os nomes aqui, um por linha"></textarea>
+        <button id="import-load" class="btn btn-secondary">Carregar</button>
+        <div id="import-src-error" class="error"></div>
+      </div>
+      <div id="import-step-preview" hidden>
+        <p class="note" id="import-note">A lista será adicionada ao FINAL das filas atuais (Normais/Preferenciais), preservando a ordem de quem já possui ticket.</p>
+        <div id="import-dup-box" class="error" hidden>
+          Há nomes idênticos (ignorando *). Para evitar confusão no Monitor, edite sua lista e acrescente um diferencial (sobrenome, apelido ou código).
+          <table id="import-dup-table"></table>
+        </div>
+        <table id="import-preview-table" title="Marque preferenciais com * no final do nome. Nomes devem ser únicos."></table>
+        <div class="import-counts">Total <span id="import-count-total">0</span> | Preferenciais <span id="import-count-pref">0</span> | Normais <span id="import-count-normal">0</span></div>
+        <div class="import-actions">
+          <button id="import-confirm" class="btn btn-success" disabled>Confirmar importação</button>
+          <button id="import-clear" class="btn btn-secondary">Limpar lista</button>
+          <button id="import-cancel" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </div>
     </div>
   </div>
 

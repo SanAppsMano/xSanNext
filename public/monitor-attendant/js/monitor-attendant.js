@@ -218,6 +218,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordCurrent= document.getElementById('password-current');
   const passwordNew    = document.getElementById('password-new');
   const passwordError  = document.getElementById('password-error');
+  const btnImport      = document.getElementById('btn-import-clients');
+  const importModal    = document.getElementById('import-modal');
+  const importFile     = document.getElementById('import-file');
+  const importText     = document.getElementById('import-text');
+  const importLoad     = document.getElementById('import-load');
+  const importSource   = document.getElementById('import-step-source');
+  const importPreview  = document.getElementById('import-step-preview');
+  const importTable    = document.getElementById('import-preview-table');
+  const importTotal    = document.getElementById('import-count-total');
+  const importPref     = document.getElementById('import-count-pref');
+  const importNormal   = document.getElementById('import-count-normal');
+  const importConfirm  = document.getElementById('import-confirm');
+  const importClear    = document.getElementById('import-clear');
+  const importCancel   = document.getElementById('import-cancel');
+  const importDupBox   = document.getElementById('import-dup-box');
+  const importDupTable = document.getElementById('import-dup-table');
+  const importSrcError = document.getElementById('import-src-error');
   const togglePwCurrent= document.getElementById('toggle-password-current');
   const clonesPanel = document.querySelector('.clones-panel');
   if (clonesPanel) clonesPanel.hidden = true;
@@ -340,6 +357,167 @@ document.addEventListener('DOMContentLoaded', () => {
       passwordError.textContent = 'Erro de conexão';
     }
   };
+
+  // Importação de lista de clientes
+  let importItems = [];
+  function resetImport() {
+    importItems = [];
+    importSource.hidden = false;
+    importPreview.hidden = true;
+    importFile.value = '';
+    importText.value = '';
+    importSrcError.textContent = '';
+    importConfirm.disabled = true;
+    importDupBox.hidden = true;
+    importDupTable.innerHTML = '';
+  }
+  function normalizeName(str) {
+    return str
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\*$/, '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+  function parseInput(text) {
+    const lines = text.split(/\r?\n/);
+    const out = [];
+    lines.forEach((line, idx) => {
+      let raw = line.trim();
+      if (!raw) return;
+      let priority = false;
+      if (raw.endsWith('*')) {
+        priority = true;
+        raw = raw.slice(0, -1).trim();
+      }
+      out.push({ name: raw, priority, line: idx + 1 });
+    });
+    return out;
+  }
+  function detectDuplicates(items) {
+    const map = new Map();
+    items.forEach((item) => {
+      const key = normalizeName(item.name);
+      if (!map.has(key)) map.set(key, { name: item.name, lines: [item.line] });
+      else map.get(key).lines.push(item.line);
+    });
+    return Array.from(map.values()).filter((v) => v.lines.length > 1);
+  }
+  function renderPreview() {
+    importSource.hidden = true;
+    importPreview.hidden = false;
+    importTable.innerHTML = '';
+    importItems.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      const tdIdx = document.createElement('td');
+      tdIdx.textContent = idx + 1;
+      const tdName = document.createElement('td');
+      tdName.textContent = item.name;
+      const tdPref = document.createElement('td');
+      if (item.priority) {
+        tdPref.textContent = '★';
+        tdPref.className = 'pref-badge';
+      }
+      tr.append(tdIdx, tdName, tdPref);
+      importTable.appendChild(tr);
+    });
+    const total = importItems.length;
+    const pref = importItems.filter((i) => i.priority).length;
+    const norm = total - pref;
+    importTotal.textContent = total;
+    importPref.textContent = pref;
+    importNormal.textContent = norm;
+    const dups = detectDuplicates(importItems);
+    if (dups.length) {
+      importDupBox.hidden = false;
+      importDupTable.innerHTML = '';
+      dups.forEach((d) => {
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td');
+        tdName.textContent = d.name;
+        const tdLines = document.createElement('td');
+        tdLines.textContent = d.lines.join(', ');
+        tr.append(tdName, tdLines);
+        importDupTable.appendChild(tr);
+      });
+      importConfirm.disabled = true;
+    } else {
+      importDupBox.hidden = true;
+      importDupTable.innerHTML = '';
+      importConfirm.disabled = false;
+    }
+  }
+  if (btnImport) {
+    const profile = cfg?.profile || cfg?.role || 'admin';
+    btnImport.hidden = !['admin', 'supervisor'].includes(profile);
+    btnImport.addEventListener('click', () => {
+      resetImport();
+      importModal.hidden = false;
+    });
+  }
+  importLoad?.addEventListener('click', async () => {
+    importSrcError.textContent = '';
+    let text = importText.value || '';
+    if (importFile.files && importFile.files[0]) {
+      const file = importFile.files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      try {
+        if (ext === 'txt' || ext === 'csv') {
+          text = await file.text();
+        } else if (ext === 'xlsx') {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          text = rows.map((r) => r[0]).join('\n');
+        } else {
+          importSrcError.textContent = 'Formato não reconhecido. Envie CSV/TXT/XLSX ou cole os nomes.';
+          return;
+        }
+      } catch {
+        importSrcError.textContent = 'Formato não reconhecido. Envie CSV/TXT/XLSX ou cole os nomes.';
+        return;
+      }
+    }
+    importItems = parseInput(text);
+    if (importItems.length === 0) {
+      importSrcError.textContent = 'Nenhum nome válido encontrado.';
+      return;
+    }
+    if (importItems.length > 5000) {
+      importSrcError.textContent = 'Arquivo acima do limite permitido.';
+      return;
+    }
+    renderPreview();
+  });
+  importClear?.addEventListener('click', () => {
+    resetImport();
+  });
+  importCancel?.addEventListener('click', () => {
+    importModal.hidden = true;
+    resetImport();
+  });
+  importConfirm?.addEventListener('click', async () => {
+    const t = token;
+    const normals = importItems.filter((i) => !i.priority).map((i) => i.name);
+    const prefs = importItems.filter((i) => i.priority).map((i) => i.name);
+    try {
+      const res = await fetch(`/.netlify/functions/enqueueBatch?t=${t}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ normal: normals, preferential: prefs })
+      });
+      if (!res.ok) throw new Error();
+      alert(`Importados: ${importItems.length} (${prefs.length} preferenciais, ${normals.length} normais)`);
+      importModal.hidden = true;
+      resetImport();
+      refreshAll(t);
+    } catch (e) {
+      alert('Erro ao importar lista');
+      console.error(e);
+    }
+  });
 
   // Botão de relatório oculto até haver dados
   btnReport.hidden = true;
