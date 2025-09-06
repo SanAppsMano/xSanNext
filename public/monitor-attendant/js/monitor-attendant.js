@@ -239,6 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const importDupBox   = document.getElementById('import-dup-box');
   const importDupTable = document.getElementById('import-dup-table');
   const importSrcError = document.getElementById('import-src-error');
+  const importProgress = document.getElementById('import-progress');
+  const importProgressBar = document.getElementById('import-progress-bar');
   const togglePwCurrent= document.getElementById('toggle-password-current');
   const clonesPanel = document.querySelector('.clones-panel');
   if (clonesPanel) clonesPanel.hidden = true;
@@ -374,6 +376,11 @@ document.addEventListener('DOMContentLoaded', () => {
     importConfirm.disabled = true;
     importDupBox.hidden = true;
     importDupTable.innerHTML = '';
+    importProgress.hidden = true;
+    importProgressBar.style.width = '0%';
+    importClear.disabled = false;
+    importCancel.disabled = false;
+    importClose.hidden = false;
   }
   function normalizeName(str) {
     return str
@@ -509,22 +516,51 @@ document.addEventListener('DOMContentLoaded', () => {
   importConfirm?.addEventListener('click', async () => {
     const t = token;
     const items = importItems.map((i) => ({ name: i.name, preferential: i.priority }));
+    const total = items.length;
+    const batchSize = 100;
+    let processed = 0;
+    let prefCount = 0;
+    let normCount = 0;
+    importProgress.hidden = false;
+    importProgressBar.style.width = '0%';
+    importConfirm.disabled = true;
+    importClear.disabled = true;
+    importCancel.disabled = true;
+    importClose.hidden = true;
+    // ensure progress bar renders before heavy work
+    await new Promise((r) => requestAnimationFrame(r));
     try {
-      const res = await fetch(`/.netlify/functions/enqueueBatch?t=${t}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items })
-      });
-      if (!res.ok) throw new Error();
-      const prefCount = items.filter((i) => i.preferential).length;
-      const normCount = items.length - prefCount;
-      alert(`Importados: ${items.length} (${prefCount} preferenciais, ${normCount} normais)`);
+      while (processed < total) {
+        const batch = items.slice(processed, processed + batchSize);
+        const res = await fetch(`/.netlify/functions/enqueueBatch?t=${encodeURIComponent(t)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: batch })
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || 'Request failed');
+        }
+        const data = await res.json();
+        prefCount += data.preferential || 0;
+        normCount += data.normal || 0;
+        processed += batch.length;
+        importProgressBar.style.width = `${(processed / total) * 100}%`;
+      }
+      alert(`Importados: ${total} (${prefCount} preferenciais, ${normCount} normais)`);
       importModal.hidden = true;
       resetImport();
       refreshAll(t);
     } catch (e) {
       alert('Erro ao importar lista');
       console.error(e);
+    } finally {
+      importProgress.hidden = true;
+      importProgressBar.style.width = '0%';
+      importConfirm.disabled = false;
+      importClear.disabled = false;
+      importCancel.disabled = false;
+      importClose.hidden = false;
     }
   });
 
