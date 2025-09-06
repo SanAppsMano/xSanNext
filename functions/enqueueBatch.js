@@ -37,36 +37,47 @@ export async function handler(event) {
     const process = async (name, isPriority) => {
       const ticketNumber = await redis.incr(prefix + "ticketCounter");
       const ts = Date.now();
-      const data = {
+      const pipeline = redis.pipeline();
+      pipeline.mset({
         [prefix + `ticketTime:${ticketNumber}`]: ts,
-      };
-      await redis.mset(data);
+      });
       if (name) {
-        await redis.hset(prefix + "ticketNames", { [ticketNumber]: name });
+        pipeline.hset(prefix + "ticketNames", { [ticketNumber]: name });
       }
       if (isPriority) {
-        await redis.rpush(prefix + "priorityQueue", ticketNumber);
-        await redis.sadd(prefix + "prioritySet", String(ticketNumber));
-        await redis.sadd(prefix + "priorityHistory", String(ticketNumber));
+        pipeline.rpush(prefix + "priorityQueue", ticketNumber);
+        pipeline.sadd(prefix + "prioritySet", String(ticketNumber));
+        pipeline.sadd(prefix + "priorityHistory", String(ticketNumber));
       }
-      await redis.lpush(prefix + "log:entered", JSON.stringify({ ticket: ticketNumber, ts, name }));
-      await redis.ltrim(prefix + "log:entered", 0, 999);
-      await redis.expire(prefix + "log:entered", LOG_TTL);
-      total++;
+      pipeline.lpush(prefix + "log:entered", JSON.stringify({ ticket: ticketNumber, ts, name }));
+      pipeline.ltrim(prefix + "log:entered", 0, 999);
+      pipeline.expire(prefix + "log:entered", LOG_TTL);
+      await pipeline.exec();
+      return isPriority;
     };
 
-    for (const item of items) {
-      if (!item) continue;
-      let { name, preferential: pref } = item;
-      name = String(name || "").trim();
-      let isPriority = Boolean(pref);
-      if (name.endsWith("*")) {
-        isPriority = true;
-        name = name.slice(0, -1).trim();
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const chunk = items.slice(i, i + CHUNK_SIZE);
+      const results = await Promise.all(
+        chunk.map(async (item) => {
+          if (!item) return null;
+          let { name, preferential: pref } = item;
+          name = String(name || "").trim();
+          let isPriority = Boolean(pref);
+          if (name.endsWith("*")) {
+            isPriority = true;
+            name = name.slice(0, -1).trim();
+          }
+          return await process(name, isPriority);
+        })
+      );
+      for (const isPriority of results) {
+        if (isPriority === null) continue;
+        total++;
+        if (isPriority) prefCount++;
+        else normCount++;
       }
-      await process(name, isPriority);
-      if (isPriority) prefCount++;
-      else normCount++;
     }
 
     return {
