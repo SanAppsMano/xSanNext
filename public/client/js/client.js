@@ -43,7 +43,6 @@ const defaultSchedule = {
     { start: '13:00', end: '18:00' }
   ]
 };
-const defaultLang = navigator.language || 'pt-BR';
 
 async function safeFetch(url, options) {
   const res = await fetch(url, options);
@@ -403,9 +402,7 @@ function alertUser(name) {
   sendNotification(name);
   if ('speechSynthesis' in window) {
     const utter = new SpeechSynthesisUtterance(`É a sua vez: ${ticketNumber} ${name || ''}`);
-    if (!window.cfg || window.cfg.speakOriginalLang === false) {
-      utter.lang = defaultLang;
-    }
+    utter.lang = 'pt-BR';
     speechSynthesis.speak(utter);
   }
   alertInterval = setInterval(doAlert, 5000);
