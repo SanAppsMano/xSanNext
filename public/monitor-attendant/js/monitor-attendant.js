@@ -1557,3 +1557,35 @@ function startBouncingCompanyName(text) {
       setTimeout(() => ripple.remove(), 600);
     });
   });
+
+const $btnNext     = document.querySelector('[data-action="next"]');
+const $btnPriority = document.querySelector('[data-action="priority"]');
+const $btnAttended = document.querySelector('[data-action="attended"]');
+const $btnRepeat   = document.querySelector('[data-action="repeat"]');
+
+function isTyping(el){
+  if(!el) return false;
+  const tag = el.tagName?.toLowerCase();
+  return el.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
+}
+
+function flash(btn){
+  if(!btn) return;
+  btn.classList.add('kbd-flash');
+  setTimeout(()=>btn.classList.remove('kbd-flash'),150);
+}
+
+function clickIfEnabled(btn){ if(btn && !btn.disabled) btn.click(); }
+
+document.addEventListener('keydown', (ev)=>{
+  if(ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if(isTyping(document.activeElement)) return;
+
+  const k = ev.key?.toLowerCase();
+  if(['n','p','a','r'].includes(k)) ev.preventDefault();
+
+  if(k === 'n'){ clickIfEnabled($btnNext);     flash($btnNext); }
+  if(k === 'p'){ clickIfEnabled($btnPriority); flash($btnPriority); }
+  if(k === 'a'){ clickIfEnabled($btnAttended); flash($btnAttended); }
+  if(k === 'r'){ clickIfEnabled($btnRepeat);   flash($btnRepeat); }
+});
