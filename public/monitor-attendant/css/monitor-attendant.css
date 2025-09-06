@@ -914,4 +914,6 @@ body {
   }
 }
 
+.kbd-flash{ outline:2px solid #4f46e5; transition: outline-color .15s; }
+
 
