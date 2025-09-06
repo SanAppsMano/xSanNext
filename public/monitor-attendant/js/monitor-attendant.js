@@ -1562,6 +1562,8 @@ const $btnNext     = document.querySelector('[data-action="next"]');
 const $btnPriority = document.querySelector('[data-action="priority"]');
 const $btnAttended = document.querySelector('[data-action="attended"]');
 const $btnRepeat   = document.querySelector('[data-action="repeat"]');
+const $btnTicketNormal = document.querySelector('[data-action="ticket-normal"]');
+const $btnTicketPref   = document.querySelector('[data-action="ticket-preferential"]');
 
 function isTyping(el){
   if(!el) return false;
@@ -1582,10 +1584,14 @@ document.addEventListener('keydown', (ev)=>{
   if(isTyping(document.activeElement)) return;
 
   const k = ev.key?.toLowerCase();
-  if(['n','p','a','r'].includes(k)) ev.preventDefault();
+  if(['n','p','a','r','t'].includes(k)) ev.preventDefault();
 
   if(k === 'n'){ clickIfEnabled($btnNext);     flash($btnNext); }
   if(k === 'p'){ clickIfEnabled($btnPriority); flash($btnPriority); }
   if(k === 'a'){ clickIfEnabled($btnAttended); flash($btnAttended); }
   if(k === 'r'){ clickIfEnabled($btnRepeat);   flash($btnRepeat); }
+  if(k === 't'){
+    if(ev.shiftKey){ clickIfEnabled($btnTicketPref); flash($btnTicketPref); }
+    else{            clickIfEnabled($btnTicketNormal); flash($btnTicketNormal); }
+  }
 });
