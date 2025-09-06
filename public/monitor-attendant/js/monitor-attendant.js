@@ -223,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordError  = document.getElementById('password-error');
   const btnImport      = document.getElementById('btn-import-clients');
   const importModal    = document.getElementById('import-modal');
+  const importClose    = document.getElementById('import-close');
   const importFile     = document.getElementById('import-file');
   const importText     = document.getElementById('import-text');
   const importLoad     = document.getElementById('import-load');
@@ -459,6 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
       importModal.hidden = false;
     });
   }
+  importClose?.addEventListener('click', () => {
+    importModal.hidden = true;
+    resetImport();
+  });
   importLoad?.addEventListener('click', async () => {
     importSrcError.textContent = '';
     let text = importText.value || '';
