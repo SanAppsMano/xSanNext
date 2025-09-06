@@ -1,6 +1,7 @@
 // SAFE REFACTOR: reverted broken HMGET to MGET for existing keys (read-only).
 // Do not change write/queue operations. Do not change API shapes.
 import { Redis } from "@upstash/redis";
+import { withinSchedule } from "./utils/schedule.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
@@ -31,18 +32,6 @@ export async function handler(event) {
     schedule = monitorCfg.schedule || null;
   }
   const preferentialDesk = monitorCfg?.preferentialDesk !== false;
-  const withinSchedule = (sched) => {
-    if (!sched) return true;
-    const tz   = sched.tz || "America/Sao_Paulo";
-    const now  = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
-    const day  = now.getDay();
-    const days = (sched.days || []).map(Number);
-    if (!days.includes(day)) return false;
-    if (!sched.intervals || sched.intervals.length === 0) return true;
-    const mins = now.getHours() * 60 + now.getMinutes();
-    const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-    return sched.intervals.some(({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end));
-  };
 
   const ticketParam = url.searchParams.get("tk");
   if (ticketParam) {
