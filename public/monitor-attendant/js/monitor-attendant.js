@@ -35,6 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     cfg.preferentialDesk = true;
     localStorage.setItem('monitorConfig', JSON.stringify(cfg));
   }
+  if (cfg && typeof cfg.speakOriginalLang === 'undefined') {
+    cfg.speakOriginalLang = true;
+    localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+  }
   let logoutVersion   = localStorage.getItem('logoutVersion');
   logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
 
@@ -161,6 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const setTicketBtn   = document.getElementById('set-ticket');
   const ticketError    = document.getElementById('ticket-error');
   const prefDeskToggle = document.getElementById('pref-desk-toggle');
+  const speakOriginalToggle = document.getElementById('speak-original-toggle');
+  const browserLangInfo = document.getElementById('browser-lang');
+  if (browserLangInfo) browserLangInfo.textContent = `(${navigator.language || 'pt-BR'})`;
   if (prefDeskToggle) {
     prefDeskToggle.checked = cfg ? cfg.preferentialDesk !== false : true;
     prefDeskToggle.addEventListener('change', async () => {
@@ -173,16 +180,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule: cfg.schedule, preferentialDesk })
+          body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule: cfg.schedule, preferentialDesk, speakOriginalLang: speakOriginalToggle ? speakOriginalToggle.checked : cfg.speakOriginalLang })
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error();
         cfg.preferentialDesk = preferentialDesk;
+        cfg.speakOriginalLang = speakOriginalToggle ? speakOriginalToggle.checked : cfg.speakOriginalLang;
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
       } catch (e) {
         alert('Erro ao salvar configuração.');
         console.error(e);
         prefDeskToggle.checked = !preferentialDesk;
+      }
+    });
+  }
+  if (speakOriginalToggle) {
+    speakOriginalToggle.checked = cfg ? cfg.speakOriginalLang !== false : true;
+    speakOriginalToggle.addEventListener('change', async () => {
+      if (isClone) {
+        speakOriginalToggle.checked = cfg.speakOriginalLang !== false;
+        return;
+      }
+      const speakOriginalLang = speakOriginalToggle.checked;
+      try {
+        const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule: cfg.schedule, preferentialDesk: prefDeskToggle ? prefDeskToggle.checked : cfg.preferentialDesk, speakOriginalLang })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error();
+        cfg.speakOriginalLang = speakOriginalLang;
+        localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+      } catch (e) {
+        alert('Erro ao salvar configuração.');
+        console.error(e);
+        speakOriginalToggle.checked = !speakOriginalLang;
       }
     });
   }
@@ -303,12 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule, preferentialDesk: prefDeskToggle.checked })
+        body: JSON.stringify({ token, empresa: cfg.empresa, senha: cfg.senha, schedule, preferentialDesk: prefDeskToggle.checked, speakOriginalLang: speakOriginalToggle ? speakOriginalToggle.checked : cfg.speakOriginalLang })
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error();
       cfg.schedule = schedule;
       cfg.preferentialDesk = prefDeskToggle.checked;
+      cfg.speakOriginalLang = speakOriginalToggle ? speakOriginalToggle.checked : cfg.speakOriginalLang;
       localStorage.setItem('monitorConfig', JSON.stringify(cfg));
       scheduleModal.hidden = true;
     } catch (e) {
@@ -1604,6 +1638,7 @@ function startBouncingCompanyName(text) {
         token = urlParams.get('t');
       } else {
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
+        if (speakOriginalToggle) speakOriginalToggle.checked = cfg.speakOriginalLang !== false;
         showApp(cfg.empresa, token);
         return;
       }
@@ -1621,10 +1656,11 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: senhaPrompt })
         });
         if (!res.ok) throw new Error();
-        const { empresa, schedule, preferentialDesk } = await res.json();
-        cfg = { token, empresa, senha: senhaPrompt, schedule, preferentialDesk };
+        const { empresa, schedule, preferentialDesk, speakOriginalLang } = await res.json();
+        cfg = { token, empresa, senha: senhaPrompt, schedule, preferentialDesk, speakOriginalLang };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
+        if (speakOriginalToggle) speakOriginalToggle.checked = cfg.speakOriginalLang !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
         return;
@@ -1685,9 +1721,10 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: pw })
         });
         const cfgData = await cfgRes.json();
-        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk, speakOriginalLang: cfgData.speakOriginalLang };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
+        if (speakOriginalToggle) speakOriginalToggle.checked = cfg.speakOriginalLang !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
       } catch (e) {
@@ -1719,9 +1756,10 @@ function startBouncingCompanyName(text) {
           body: JSON.stringify({ token, senha: pw })
         });
         const cfgData = await cfgRes.json();
-        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
+        cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk, speakOriginalLang: cfgData.speakOriginalLang };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
+        if (speakOriginalToggle) speakOriginalToggle.checked = cfg.speakOriginalLang !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
       } catch (e) {
@@ -1750,12 +1788,13 @@ function startBouncingCompanyName(text) {
         const res = await fetch(`${location.origin}/.netlify/functions/saveMonitorConfig`, {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays, schedule, preferentialDesk: true })
+          body: JSON.stringify({ token, empresa: label, senha: pw, trialDays, schedule, preferentialDesk: true, speakOriginalLang: true })
         });
         const { ok } = await res.json();
         if (!ok) throw new Error();
-        cfg = { token, empresa: label, senha: pw, schedule, preferentialDesk: true };
+        cfg = { token, empresa: label, senha: pw, schedule, preferentialDesk: true, speakOriginalLang: true };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        if (speakOriginalToggle) speakOriginalToggle.checked = true;
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
         showApp(label, token);
       } catch (e) {
