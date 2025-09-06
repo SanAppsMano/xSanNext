@@ -1,4 +1,5 @@
 // public/client/js/client.js
+import { withinSchedule, msUntilNextInterval } from "./schedule.js";
 
 // Captura o tenantId da URL
 const urlParams = new URL(location).searchParams;
@@ -36,6 +37,7 @@ let wakeLock = null;
 let silenced   = false;
 let callStartTs = 0;
 let schedule = null;
+const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const defaultSchedule = {
   days: [1, 2, 3, 4, 5],
   intervals: [
@@ -72,46 +74,6 @@ async function fetchSchedule() {
   }
 }
 
-function withinSchedule() {
-  if (!schedule) return false;
-  const tz  = schedule.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-  const day  = now.getDay();
-  const days = (schedule.days || []).map(Number);
-  if (!days.includes(day)) return false;
-  // Sem intervalos marcados: dia inteiro liberado
-  if (!schedule.intervals || schedule.intervals.length === 0) return true;
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const toMins = t => {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
-  const inInterval = ({ start, end }) => start && end && mins >= toMins(start) && mins < toMins(end);
-  return schedule.intervals.some(inInterval);
-}
-
-function msUntilNextInterval() {
-  if (!schedule) return null;
-  const tz  = schedule.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-  const baseIntervals = (schedule.intervals && schedule.intervals.length)
-    ? schedule.intervals.slice().sort((a, b) => a.start.localeCompare(b.start))
-    : [{ start: '00:00' }];
-  for (let offset = 0; offset < 7; offset++) {
-    const day = (now.getDay() + offset) % 7;
-    if (!schedule.days || !schedule.days.includes(day)) continue;
-    for (const { start } of baseIntervals) {
-      if (!start) continue;
-      const [h, m] = start.split(':').map(Number);
-      const startDate = new Date(now);
-      startDate.setDate(now.getDate() + offset);
-      startDate.setHours(h, m, 0, 0);
-      if (startDate > now) return startDate - now;
-    }
-  }
-  return null;
-}
-
 function schedulePolling() {
   if (polling) {
     clearInterval(polling);
@@ -119,12 +81,12 @@ function schedulePolling() {
   }
   clearTimeout(resumeTimeout);
   clearInterval(countdownInterval);
-  if (withinSchedule()) {
+  if (withinSchedule(schedule, userTz)) {
     polling = setInterval(checkStatus, 5000);
     checkStatus();
     btnCheck.hidden = true;
   } else {
-    const ms = msUntilNextInterval();
+    const ms = msUntilNextInterval(schedule, userTz);
     if (ms != null) {
       const target = Date.now() + ms;
       const update = () => {
@@ -245,7 +207,7 @@ function renderAheadCount(value, label) {
 
 async function checkStatus() {
   if (!ticketNumber) return;
-  if (!withinSchedule()) {
+  if (!withinSchedule(schedule, userTz)) {
     statusEl.textContent = "Fora do horário de atendimento.";
     clearInterval(polling);
     schedulePolling();
