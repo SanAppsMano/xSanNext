@@ -766,6 +766,20 @@ body {
 #import-modal .import-counts {
   margin-top: 0.5rem;
 }
+#import-modal .import-progress {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 10px;
+  background: var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+#import-modal .import-progress-bar {
+  height: 100%;
+  width: 0;
+  background: var(--primary);
+  transition: width 0.2s;
+}
 #import-modal .pref-badge {
   color: var(--danger);
 }
