@@ -167,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const setTicketBtn   = document.getElementById('set-ticket');
   const ticketError    = document.getElementById('ticket-error');
   const prefDeskToggle = document.getElementById('pref-desk-toggle');
-  let repetirBusy = false;
   if (prefDeskToggle) {
     prefDeskToggle.checked = cfg ? cfg.preferentialDesk !== false : true;
     prefDeskToggle.addEventListener('change', async () => {
@@ -248,6 +247,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const importSrcError = document.getElementById('import-src-error');
   const importProgress = document.getElementById('import-progress');
   const importProgressBar = document.getElementById('import-progress-bar');
+
+  // Gerador de nonce único por clique
+  function makeNonce() {
+    // evita colisão em cliques muito rápidos
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${performance.now().toFixed(3)}`;
+  }
+
+  let repeatSeq = 0;
   const togglePwCurrent= document.getElementById('toggle-password-current');
   const clonesPanel = document.querySelector('.clones-panel');
   if (clonesPanel) clonesPanel.hidden = true;
@@ -642,6 +649,34 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Falha ao publicar chamado:', err);
     }
   }
+
+  // Listener global para botão Repetir
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action="repeat"], #btn-repeat');
+    if (!btn) return;
+
+    const { numero, guiche, preferencial, guicheLabel, name } = getCurrentCallData();
+    if (!numero) return; // sem número, não repete
+
+    repeatSeq += 1;
+
+    const payload = {
+      numero,
+      guiche,
+      preferencial,
+      guicheLabel,
+      name,
+      repeat: true,
+      repeatSeq,
+      nonce: makeNonce(),
+      ts: Date.now()
+    };
+
+    try { await publishCall(payload); } catch (err) {
+      console.error('Falha no Repetir:', err);
+    }
+  });
+
   updateTicketSetter();
 
  /** Renderiza o QR Code e configura interação */
@@ -1537,36 +1572,7 @@ function startBouncingCompanyName(text) {
       });
       refreshAll(t);
     };
-    btnRepeat.onclick = async () => {
-      if (repetirBusy || !currentCallNum) return;
-      repetirBusy = true;
-      btnRepeat.disabled = true;
-      try {
-        const id = attendantInput.value.trim();
-        let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
-        if (id) url += `&id=${encodeURIComponent(id)}`;
-        playAlert();
-        const { called, attendant } = await (await fetch(url)).json();
-        updateCall(called, attendant);
-        const { numero, guiche, preferencial, guicheLabel, name } = getCurrentCallData();
-        const payload = {
-          numero,
-          guiche: attendant || guiche,
-          preferencial,
-          guicheLabel,
-          name,
-          repeat: true,
-          ts: Date.now(),
-        };
-        await publishCall(payload);
-        refreshAll(t);
-      } catch (err) {
-        console.error('Falha no Repetir:', err);
-      } finally {
-        repetirBusy = false;
-        btnRepeat.disabled = false;
-      }
-    };
+    // Repetição é tratada globalmente via event delegation
     btnDone.onclick = async () => {
       if (!currentCallNum) return;
       await fetch(`/.netlify/functions/atendido?t=${t}`, {

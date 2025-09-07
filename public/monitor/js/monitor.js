@@ -36,10 +36,6 @@
     showTicketType(label);
   }
 
-  function onCallReceived(payload) {
-    renderTicketTypeFromPayload(payload);
-    se.onCall(payload);
-  }
 
   function onIdleOrEmpty() {
     hideTicketType();
@@ -207,7 +203,10 @@
   }
 
   if (window.channel && typeof window.channel.subscribe === 'function') {
-    window.channel.subscribe('call', (payload) => onCallReceived(payload));
+    window.channel.subscribe('call', (payload) => {
+      renderTicketTypeFromPayload?.(payload);
+      se.onCall(payload);
+    });
   }
 
   fetchEstado();

@@ -4,7 +4,7 @@ class SoundEngine {
     this.ctx = null;              // AudioContext (WebAudio)
     this.wakeLock = null;
     this.queue = Promise.resolve(); // fila para serializar ALERTA->FALA
-    this.lastCallId = null;
+    this.lastNormalKey = null;   // dedupe apenas para chamadas normais
     this._wireVoices();
     this._visWakeLock();
   }
@@ -101,19 +101,28 @@ class SoundEngine {
     return parts.join(' ');
   }
 
+  _normalKey(p) {
+    // chave de identidade para chamadas normais (ignora identificador/nome)
+    const num = (p?.numero ?? p?.ticket ?? p?.senha ?? '').toString().trim();
+    const g   = (p?.guiche ?? '').toString().trim();
+    const pref= !!(p?.preferencial ?? p?.preferential ?? p?.isPreferential ?? p?.priority);
+    return `${num}|${g}|${pref}`;
+  }
+
   async onCall(payload) {
-    // Base para id no fluxo normal
-    const baseId = payload?.id ?? `${payload?.numero}|${payload?.guiche ?? ''}`;
+    const isRepeat = !!payload?.repeat;
 
-    // Repetir deve gerar id único para não ser filtrado
-    const id = payload?.repeat ? `${baseId}|repeat|${payload?.ts || Date.now()}` : baseId;
-
-    if (!payload?.repeat && id && id === this.lastCallId) return; // dedupe normal
-    this.lastCallId = id;
+    if (!isRepeat) {
+      const key = this._normalKey(payload);
+      if (key && key === this.lastNormalKey) {
+        return;
+      }
+      this.lastNormalKey = key;
+    }
 
     const phrase = this._phraseForSpeak(payload);
 
-    // Enfileirar: ALERTA → FALA (sem sobrepor). Se phrase ficar vazia, não falar.
+    // Enfileira: ALERTA -> FALA (sem sobreposição). Se phrase vazia, só alerta.
     this.queue = this.queue.then(async () => {
       await this._playAlertPattern();
       if (phrase) await this._speak(phrase);
