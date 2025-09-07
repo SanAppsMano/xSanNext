@@ -46,6 +46,13 @@ const queuesPanel = document.getElementById('queues-panel');
 const queuesHeader = document.getElementById('queues-header');
 const queuesChevron = document.getElementById('queues-chevron');
 
+function handleResetCadastroMonitor() {
+  localStorage.clear();
+  window.location.reload();
+}
+
+window.addEventListener('xsn:reset', handleResetCadastroMonitor);
+
 function saveSetting(key, value) {
   localStorage.setItem(key, value);
 }
@@ -244,8 +251,21 @@ async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
     const res = await fetch(url);
+    if (!res.ok) {
+      handleResetCadastroMonitor();
+      return;
+    }
     const data = await res.json();
-    const { currentCall, names = {}, timestamp, attendant, currentCallPriority = 0 } = data;
+    const { currentCall, names = {}, timestamp, attendant, currentCallPriority = 0, logoutVersion } = data;
+
+    if (logoutVersion !== undefined) {
+      const localLogout = Number(localStorage.getItem('logoutVersion') || '0');
+      if (localLogout && logoutVersion !== localLogout) {
+        handleResetCadastroMonitor();
+        return;
+      }
+      localStorage.setItem('logoutVersion', String(logoutVersion));
+    }
     currentEl.textContent = currentCall || '—';
     currentEl.classList.toggle('priority', currentCallPriority > 0);
     const name = names[currentCall];
