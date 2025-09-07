@@ -36,8 +36,6 @@
         : 'empty';
       const current = state.dados.ticketAtual.numero;
       if (current && current !== lastTicketNumber) {
-        alertSound.currentTime = 0;
-        alertSound.play().catch(() => {});
         const speak = () => {
           if ('speechSynthesis' in window) {
             const { numero, tipo, guiche } = state.dados.ticketAtual;
@@ -46,7 +44,15 @@
             speechSynthesis.speak(utter);
           }
         };
-        alertSound.addEventListener('ended', speak, { once: true });
+        alertSound.currentTime = 0;
+        const playPromise = alertSound.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise
+            .then(() => alertSound.addEventListener('ended', speak, { once: true }))
+            .catch(() => speak());
+        } else {
+          speak();
+        }
         lastTicketNumber = current;
       }
     } catch (e) {
