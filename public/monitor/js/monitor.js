@@ -207,6 +207,11 @@
       renderTicketTypeFromPayload?.(payload);
       se.onCall(payload);
     });
+
+    window.channel.subscribe('repeat', (payload) => {
+      renderTicketTypeFromPayload?.(payload);
+      se.onRepeat(payload);
+    });
   }
 
   fetchEstado();

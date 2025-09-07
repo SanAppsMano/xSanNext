@@ -253,8 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // evita colisão em cliques muito rápidos
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${performance.now().toFixed(3)}`;
   }
-
-  let repeatSeq = 0;
   const togglePwCurrent= document.getElementById('toggle-password-current');
   const clonesPanel = document.querySelector('.clones-panel');
   if (clonesPanel) clonesPanel.hidden = true;
@@ -650,31 +648,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Listener global para botão Repetir
-  document.addEventListener('click', async (e) => {
+  async function repeatActiveCall() {
+    const tenant = cfg?.empresa || document.querySelector('[data-tenant]')?.dataset.tenant;
+    const { numero, preferencial, guicheLabel, name } = getCurrentCallData();
+    if (!tenant || !numero) return;
+    await fetch('/.netlify/functions/repeat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tenant, numero, preferencial, guicheLabel, name, nonce: makeNonce() })
+    }).catch(() => {});
+  }
+
+  // Botão Repetir (sem bloquear cliques subsequentes)
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action="repeat"], #btn-repeat');
     if (!btn) return;
-
-    const { numero, guiche, preferencial, guicheLabel, name } = getCurrentCallData();
-    if (!numero) return; // sem número, não repete
-
-    repeatSeq += 1;
-
-    const payload = {
-      numero,
-      guiche,
-      preferencial,
-      guicheLabel,
-      name,
-      repeat: true,
-      repeatSeq,
-      nonce: makeNonce(),
-      ts: Date.now()
-    };
-
-    try { await publishCall(payload); } catch (err) {
-      console.error('Falha no Repetir:', err);
-    }
+    repeatActiveCall();
   });
 
   updateTicketSetter();
