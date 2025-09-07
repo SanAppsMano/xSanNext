@@ -1,141 +1,178 @@
+(() => {
+  const params = new URLSearchParams(location.search);
+  const view = params.get('view') || localStorage.getItem('monitor:view') || 'tv';
+  localStorage.setItem('monitor:view', view);
+  document.body.classList.add(view === 'mobile' ? 'view-mobile' : 'view-tv');
+  if (view === 'tv') document.getElementById('app').classList.add('view-tv-root');
 
-// public/monitor/js/monitor.js
-// Captura o tenantId a partir da URL para poder consultar o status correto
-const urlParams = new URL(window.location.href).searchParams;
-const tenantId  = urlParams.get('t');
-const empresa   = urlParams.get('empresa');
+  const tenantId = params.get('t') || '';
+  const state = {
+    empresa: document.querySelector('#app').dataset.company || params.get('empresa') || 'Casa de Saúde',
+    dados: null,
+    estado: 'loading'
+  };
 
-if (empresa) {
-  const el = document.getElementById('company-name');
-  if (el) el.textContent = decodeURIComponent(empresa);
-}
-
-let lastCall     = 0;
-let lastTs       = 0;
-let lastId       = '';
-let lastPriority = 0;
-const alertSound   = document.getElementById('alert-sound');
-const unlockOverlay = document.getElementById('unlock-overlay');
-let wakeLock = null;
-let intervalId = null;
-
-// Desbloqueia o audio na primeira interação do usuário para evitar
-// que o navegador bloqueie a execução do som de alerta
-if (alertSound) {
-  const unlock = () => {
-    alertSound.volume = 0;
-    const p = alertSound.play();
-    if (p && typeof p.then === 'function') {
-      p.then(() => {
-        alertSound.pause();
-        alertSound.currentTime = 0;
-      }).catch(() => {});
+  async function fetchEstado() {
+    try {
+      const res = await fetch(`/.netlify/functions/status${tenantId ? `?t=${tenantId}` : ''}`);
+      const data = await res.json();
+      state.dados = transformStatus(data);
+      state.estado = (state.dados.contadores.fila > 0 || state.dados.ticketAtual.numero)
+        ? 'active'
+        : 'empty';
+    } catch (e) {
+      console.error(e);
+      state.estado = 'error';
     }
-    alertSound.volume = 1;
-    requestWakeLock();
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
+    render();
+  }
+
+  function transformStatus(data) {
+    const cancel = new Set(data.cancelledNumbers || []);
+    const missed = new Set(data.missedNumbers || []);
+    const attended = new Set(data.attendedNumbers || []);
+    const skipped = new Set(data.skippedNumbers || []);
+    const offHours = new Set(data.offHoursNumbers || []);
+    const priority = new Set(data.priorityNumbers || []);
+    const names = data.names || {};
+
+    const waiting = [];
+    for (let i = data.callCounter + 1; i <= data.ticketCounter; i++) {
+      if (
+        i !== data.currentCall &&
+        !cancel.has(i) &&
+        !missed.has(i) &&
+        !attended.has(i) &&
+        !skipped.has(i) &&
+        !offHours.has(i)
+      ) {
+        waiting.push(i);
+      }
     }
-    if (unlockOverlay) unlockOverlay.classList.add('hidden');
-    document.removeEventListener('click', unlock);
-    document.removeEventListener('touchstart', unlock);
-    if (unlockOverlay) unlockOverlay.removeEventListener('click', unlock);
+    const waitingPriority = waiting.filter(n => priority.has(n)).length;
+    const waitingNormal = waiting.length - waitingPriority;
+
+    return {
+      ticketAtual: {
+        numero: data.currentCall || 0,
+        tipo: priority.has(data.currentCall) ? 'Preferencial' : 'Normal',
+        guiche: data.attendant || '',
+        nome: names[data.currentCall] || '',
+        setor: ''
+      },
+      proximos: waiting.slice(0,5).map(n => ({
+        numero: n,
+        tipo: priority.has(n) ? 'Preferencial' : 'Normal'
+      })),
+      contadores: {
+        fila: waiting.length,
+        normal: waitingNormal,
+        preferencial: waitingPriority
+      }
     };
-  document.addEventListener('click', unlock, { once: true });
-  document.addEventListener('touchstart', unlock, { once: true });
-  if (unlockOverlay) unlockOverlay.addEventListener('click', unlock);
-}
-
-async function requestWakeLock() {
-  if (!('wakeLock' in navigator) || wakeLock) return;
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => (wakeLock = null));
-  } catch (e) {
-    console.error('wakeLock', e);
   }
-}
 
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release().catch(() => {});
-    wakeLock = null;
+  function render() {
+    if (view === 'mobile') renderMobile();
+    else renderTv();
   }
-}
 
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    clearInterval(intervalId);
-    intervalId = null;
-  } else {
-    requestWakeLock();
-    fetchCurrent();
-    clearInterval(intervalId);
-    intervalId = setInterval(fetchCurrent, 5000);
-  }
-});
-
-window.addEventListener('beforeunload', () => {
-  releaseWakeLock();
-});
-
-function alertUser(num, name, attendantId, isPriority) {
-  if (alertSound) {
-    alertSound.currentTime = 0;
-    alertSound.play().catch(() => {});
-  }
-  if ('speechSynthesis' in window) {
-    let text = `Senha ${num}`;
-    if (isPriority) text += ', preferencial';
-    if (attendantId) text += `, ${attendantId}`;
-    if (name) text += `, ${name}`;
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'pt-BR';
-    utter.volume = 1;
-    speechSynthesis.speak(utter);
-  }
-}
-
-async function fetchCurrent() {
-  try {
-    const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
-    const res = await fetch(url);
-    const { currentCall, names = {}, timestamp, attendant, currentCallPriority = 0 } = await res.json();
-    const currentEl = document.getElementById('current');
-    const nameEl = document.getElementById('current-name');
-    const idEl   = document.getElementById('current-id');
-    const priorityEl = document.getElementById('priority-label');
-    const container = document.querySelector('.container');
-    const name = names[currentCall];
-    currentEl.textContent = currentCall;
-    currentEl.classList.toggle('priority', currentCallPriority > 0);
-    if (name) {
-      currentEl.classList.add('manual');
-      nameEl.textContent = name;
-    } else {
-      currentEl.classList.remove('manual');
-      nameEl.textContent = '';
+  function renderMobile() {
+    const app = document.getElementById('app');
+    const d = state.dados;
+    if (!d) {
+      app.innerHTML = '<div class="state-overlay">Carregando...</div>';
+      return;
     }
-    if (priorityEl) {
-      priorityEl.textContent = currentCallPriority > 0 ? 'Preferencial' : '';
+    app.innerHTML = `
+      <div class="mobile-card">
+        <div class="empresa">${state.empresa}</div>
+        <div class="label">Chamando</div>
+        <div class="numero ${d.ticketAtual.tipo === 'Preferencial' ? 'preferencial' : 'normal'}">${d.ticketAtual.numero || '–'}</div>
+        ${d.ticketAtual.tipo === 'Preferencial' ? '<div class="badge">Preferencial</div>' : ''}
+        ${d.ticketAtual.nome ? `<div class="nome">${d.ticketAtual.nome}</div>` : ''}
+        ${d.ticketAtual.setor ? `<div class="setor">${d.ticketAtual.setor}</div>` : ''}
+      </div>
+    `;
+    if (state.estado !== 'active') {
+      const msg = state.estado === 'empty' ? 'Sem tickets na fila' : 'Erro ao carregar';
+      const overlay = document.createElement('div');
+      overlay.className = 'state-overlay';
+      overlay.textContent = msg;
+      app.appendChild(overlay);
     }
-    if (idEl) idEl.textContent = attendant || '';
-    if (currentCall && (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId || currentCallPriority !== lastPriority)) {
-      alertUser(currentCall, name, attendant, currentCallPriority > 0);
-      container.classList.add('blink');
-      setTimeout(() => container.classList.remove('blink'), 5000);
-      lastCall = currentCall;
-      lastTs = timestamp;
-      lastId = attendant;
-      lastPriority = currentCallPriority;
-    }
-  } catch (e) {
-    console.error('Erro ao buscar currentCall:', e);
   }
-}
 
-// Polling a cada 5 segundos
-fetchCurrent();
-intervalId = setInterval(fetchCurrent, 5000);
+  let clockInterval = null;
+  function startClock() {
+    const el = document.getElementById('clock');
+    if (!el) return;
+    clearInterval(clockInterval);
+    const update = () => {
+      el.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
+    update();
+    clockInterval = setInterval(update, 1000);
+  }
 
-requestWakeLock();
+  function renderTv() {
+    const app = document.getElementById('app');
+    const d = state.dados;
+    if (!d) {
+      app.innerHTML = '<div class="state-overlay">Carregando...</div>';
+      return;
+    }
+    app.innerHTML = `
+      <header class="tv-header">
+        <div class="logo"><img src="/img/icon-sannext.png" alt="SanNext"></div>
+        <div class="company-name">${state.empresa}</div>
+        <div class="header-actions">
+          <a class="btn-pdf" href="#" target="_blank">PDF</a>
+        </div>
+      </header>
+      <div class="tv-main">
+        <section class="tv-chamando">
+          <div class="guiche">${d.ticketAtual.guiche}</div>
+          <div class="numero ${d.ticketAtual.tipo === 'Preferencial' ? 'preferencial' : 'normal'}">${d.ticketAtual.numero || '–'}</div>
+          <div class="pill">${d.ticketAtual.tipo}</div>
+          ${d.ticketAtual.nome ? `<div class="nome">${d.ticketAtual.nome}</div>` : ''}
+          ${d.ticketAtual.setor ? `<div class="setor">${d.ticketAtual.setor}</div>` : ''}
+        </section>
+        <aside class="tv-proximos">
+          <h2>Próximos</h2>
+          <ul>
+            ${d.proximos.map(p => `<li><span class="num ${p.tipo === 'Preferencial' ? 'preferencial' : 'normal'}">${p.numero}</span><span>${p.tipo === 'Preferencial' ? 'P' : 'N'}</span></li>`).join('')}
+          </ul>
+        </aside>
+      </div>
+      <footer class="tv-footer">
+        <div>Na fila: ${d.contadores.fila}</div>
+        <div>Normais: ${d.contadores.normal}</div>
+        <div>Preferenciais: ${d.contadores.preferencial}</div>
+        <div class="clock" id="clock"></div>
+      </footer>
+    `;
+    startClock();
+    if (state.estado !== 'active') {
+      const msg = state.estado === 'empty' ? 'Sem tickets na fila' : 'Erro ao carregar';
+      const overlay = document.createElement('div');
+      overlay.className = 'state-overlay';
+      overlay.textContent = msg;
+      app.appendChild(overlay);
+    }
+  }
+
+  fetchEstado();
+  let interval = setInterval(fetchEstado, view === 'mobile' ? 15000 : 4000);
+  document.addEventListener('visibilitychange', () => {
+    if (view === 'tv') {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        fetchEstado();
+        clearInterval(interval);
+        interval = setInterval(fetchEstado, 4000);
+      }
+    }
+  });
+})();
