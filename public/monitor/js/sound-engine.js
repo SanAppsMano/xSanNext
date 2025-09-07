@@ -110,24 +110,23 @@ class SoundEngine {
   }
 
   async onCall(payload) {
-    const isRepeat = !!payload?.repeat;
-
-    if (!isRepeat) {
-      const key = this._normalKey(payload);
-      if (key && key === this.lastNormalKey) {
-        return;
-      }
-      this.lastNormalKey = key;
-    }
-
+    const key = this._normalKey(payload);
+    if (key && key === this.lastNormalKey) return;
+    this.lastNormalKey = key;
     const phrase = this._phraseForSpeak(payload);
-
-    // Enfileira: ALERTA -> FALA (sem sobreposição). Se phrase vazia, só alerta.
     this.queue = this.queue.then(async () => {
       await this._playAlertPattern();
       if (phrase) await this._speak(phrase);
     });
+    return this.queue;
+  }
 
+  async onRepeat(payload) {
+    const phrase = this._phraseForSpeak(payload);
+    this.queue = this.queue.then(async () => {
+      await this._playAlertPattern();
+      if (phrase) await this._speak(phrase);
+    });
     return this.queue;
   }
 
