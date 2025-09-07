@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const setTicketBtn   = document.getElementById('set-ticket');
   const ticketError    = document.getElementById('ticket-error');
   const prefDeskToggle = document.getElementById('pref-desk-toggle');
+  let repetirBusy = false;
   if (prefDeskToggle) {
     prefDeskToggle.checked = cfg ? cfg.preferentialDesk !== false : true;
     prefDeskToggle.addEventListener('change', async () => {
@@ -624,12 +625,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function getCurrentCallData() {
-    const numero = currentCallNum || '';
+    const numero = (currentCallNum || '').toString().trim();
     const guicheLabel = attendantInput.value?.trim() || '';
     const name = ticketNames[numero] || '';
     const guiche = guicheLabel;
-    const preferencial = prioritySet.has(numero);
-    return { numero, guicheLabel, name, guiche, preferencial };
+    const preferencial = prioritySet.has(Number(numero));
+    return { numero, guiche, preferencial, guicheLabel, name };
   }
 
   async function publishCall(payload) {
@@ -1537,20 +1538,34 @@ function startBouncingCompanyName(text) {
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
-      if (!currentCallNum) return;
-      const id = attendantInput.value.trim();
-      let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
-      if (id) url += `&id=${encodeURIComponent(id)}`;
-      playAlert();
-      const { called, attendant } = await (await fetch(url)).json();
-      updateCall(called, attendant);
-      await publishCall({
-        ...getCurrentCallData(),
-        guiche: attendant,
-        repeat: true,
-        ts: Date.now(),
-      });
-      refreshAll(t);
+      if (repetirBusy || !currentCallNum) return;
+      repetirBusy = true;
+      btnRepeat.disabled = true;
+      try {
+        const id = attendantInput.value.trim();
+        let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
+        if (id) url += `&id=${encodeURIComponent(id)}`;
+        playAlert();
+        const { called, attendant } = await (await fetch(url)).json();
+        updateCall(called, attendant);
+        const { numero, guiche, preferencial, guicheLabel, name } = getCurrentCallData();
+        const payload = {
+          numero,
+          guiche: attendant || guiche,
+          preferencial,
+          guicheLabel,
+          name,
+          repeat: true,
+          ts: Date.now(),
+        };
+        await publishCall(payload);
+        refreshAll(t);
+      } catch (err) {
+        console.error('Falha no Repetir:', err);
+      } finally {
+        repetirBusy = false;
+        btnRepeat.disabled = false;
+      }
     };
     btnDone.onclick = async () => {
       if (!currentCallNum) return;

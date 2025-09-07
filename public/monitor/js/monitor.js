@@ -12,6 +12,39 @@
     estado: 'loading'
   };
 
+  // --- UI helpers para o "tipo" ---
+  const typeBox  = document.querySelector('[data-role="ticket-type-box"]');
+  const typeText = document.querySelector('[data-role="ticket-type-text"]');
+
+  function hideTicketType() {
+    if (typeText) typeText.textContent = '';
+    if (typeBox) typeBox.classList.add('hidden');
+  }
+
+  function showTicketType(label) {
+    if (!typeBox || !typeText) return;
+    typeText.textContent = (label || '').trim();
+    if (!typeText.textContent) return hideTicketType();
+    typeBox.classList.remove('hidden');
+  }
+
+  function renderTicketTypeFromPayload(payload) {
+    const num = (payload?.numero ?? payload?.ticket ?? payload?.senha ?? '').toString().trim();
+    if (!num) return hideTicketType();
+    const isPref = !!(payload?.preferencial ?? payload?.preferential ?? payload?.isPreferential ?? payload?.priority);
+    const label  = isPref ? 'Preferencial' : 'Normal';
+    showTicketType(label);
+  }
+
+  function onCallReceived(payload) {
+    renderTicketTypeFromPayload(payload);
+    se.onCall(payload);
+  }
+
+  function onIdleOrEmpty() {
+    hideTicketType();
+  }
+
   async function fetchEstado() {
     try {
       const res = await fetch(`/.netlify/functions/status${tenantId ? `?t=${tenantId}` : ''}`);
@@ -22,6 +55,7 @@
         : 'empty';
       const current = state.dados.ticketAtual;
       if (current.numero) {
+        renderTicketTypeFromPayload(current);
         se.onCall({
           numero: current.numero,
           guiche: current.guiche,
@@ -29,10 +63,13 @@
           name: current.nome,
           preferencial: current.tipo === 'Preferencial'
         });
+      } else {
+        onIdleOrEmpty();
       }
     } catch (e) {
       console.error(e);
       state.estado = 'error';
+      onIdleOrEmpty();
     }
     render();
   }
@@ -167,6 +204,10 @@
       overlay.textContent = msg;
       app.appendChild(overlay);
     }
+  }
+
+  if (window.channel && typeof window.channel.subscribe === 'function') {
+    window.channel.subscribe('call', (payload) => onCallReceived(payload));
   }
 
   fetchEstado();

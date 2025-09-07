@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SanNext — Monitor</title>
   <link rel="stylesheet" href="/monitor/css/monitor.css" />
+  <style>
+    [data-role="ticket-type-box"].hidden { display: none !important; }
+  </style>
 </head>
 <body>
   <div id="app" data-company=""></div>
+  <div data-role="ticket-type-box" class="hidden">
+    <span data-role="ticket-type-text"></span>
+  </div>
   <button id="btn-ativar-som" style="position:fixed;bottom:1rem;right:1rem;z-index:9999;">
     Ativar som
   </button>
@@ -25,13 +31,6 @@
     ['pointerdown','keydown','touchstart'].forEach(evt => {
       window.addEventListener(evt, ativar, { once: true });
     });
-
-    if (window.channel && typeof window.channel.subscribe === 'function') {
-      channel.subscribe('call', (payload) => {
-        // payload pode vir de chamada normal ou repeat
-        se.onCall(payload);
-      });
-    }
   </script>
   <script src="/monitor/js/monitor.js" defer></script>
 </body>
