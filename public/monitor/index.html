@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SanNext — Monitor</title>
+  <link rel="stylesheet" href="/monitor/css/monitor.css" />
+</head>
+<body>
+  <div id="app" data-company=""></div>
+  <button id="btn-ativar-som" style="position:fixed;bottom:1rem;right:1rem;z-index:9999;">
+    Ativar som
+  </button>
+  <script src="/monitor/js/sound-engine.js"></script>
+  <script>
+    const se = new SoundEngine({ ttsLang: 'pt-BR' });
+
+    // Gesto do usuário para desbloquear áudio/TTS e ligar Wake Lock
+    const ativar = async () => {
+      await se.unlock();
+      await se.enableWakeLock();
+      document.getElementById('btn-ativar-som')?.remove();
+    };
+    document.getElementById('btn-ativar-som')?.addEventListener('click', ativar);
+    ['pointerdown','keydown','touchstart'].forEach(evt => {
+      window.addEventListener(evt, ativar, { once: true });
+    });
+
+    // >>> INTEGRAÇÃO COM O EVENTO QUE JÁ EXISTE <<<
+    // Exemplo: quando chegar um chamado no monitor:
+    // monitor.on('call', (payload) => {
+    //   se.onCall({ numero: payload.numero, guiche: payload.guiche, id: payload.id });
+    // });
+  </script>
+  <script src="/monitor/js/monitor.js" defer></script>
+</body>
+</html>

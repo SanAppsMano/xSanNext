@@ -11,109 +11,6 @@
     dados: null,
     estado: 'loading'
   };
-  const alertAudio = document.getElementById('alert-audio');
-  alertAudio.src = '/sounds/alert.mp3';
-  alertAudio.preload = 'auto';
-
-  let lastCallId = null;
-  let wakeLock = null;
-  let noSleep = null;
-
-  function unlockAudioAndTTS() {
-    alertAudio.volume = 0.01;
-    alertAudio.play().then(() => {
-      setTimeout(() => {
-        alertAudio.pause();
-        alertAudio.currentTime = 0;
-      }, 50);
-    }).catch(() => {});
-    try {
-      if (speechSynthesis.paused) speechSynthesis.resume();
-    } catch (e) {}
-    removeUnlockListeners();
-  }
-
-  function addUnlockListeners() {
-    window.addEventListener('pointerdown', unlockAudioAndTTS);
-    window.addEventListener('keydown', unlockAudioAndTTS);
-  }
-
-  function removeUnlockListeners() {
-    window.removeEventListener('pointerdown', unlockAudioAndTTS);
-    window.removeEventListener('keydown', unlockAudioAndTTS);
-    const btn = document.getElementById('btn-ativar-som');
-    if (btn) btn.remove();
-  }
-
-  addUnlockListeners();
-  document.getElementById('btn-ativar-som')?.addEventListener('click', unlockAudioAndTTS);
-
-  async function requestWakeLock() {
-    if (view !== 'mobile') return;
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', () => { wakeLock = null; });
-        document.addEventListener('visibilitychange', async () => {
-          if (document.visibilityState === 'visible' && !wakeLock) {
-            try {
-              wakeLock = await navigator.wakeLock.request('screen');
-            } catch (e) {}
-          }
-        });
-      } else if (window.NoSleep) {
-        if (!noSleep) noSleep = new NoSleep();
-        noSleep.enable();
-      }
-    } catch (e) {
-      console.error('wakeLock', e);
-    }
-  }
-  if (view === 'mobile') requestWakeLock();
-
-  function speakText(text, lang = 'pt-BR', rate = 1, pitch = 1) {
-    try { speechSynthesis.cancel(); } catch (e) {}
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang; u.rate = rate; u.pitch = pitch;
-    return new Promise(resolve => {
-      u.onend = resolve;
-      u.onerror = resolve;
-      speechSynthesis.speak(u);
-    });
-  }
-
-  function waitForAudioEnd(audio) {
-    return new Promise(res => {
-      if (audio.ended || audio.paused) return res();
-      audio.onended = () => res();
-    });
-  }
-
-  async function playAlertThenSpeak(text) {
-    try {
-      alertAudio.pause();
-      alertAudio.currentTime = 0;
-      alertAudio.volume = 1;
-      await alertAudio.play();
-    } catch (err) {
-      try { speechSynthesis.resume(); } catch (e) {}
-      try { await alertAudio.play(); } catch (e2) {}
-    }
-    await waitForAudioEnd(alertAudio);
-    await speakText(text);
-  }
-
-  function montarFrase(payload) {
-    const num = payload?.numero ?? payload?.ticket ?? payload?.senha ?? '';
-    const guiche = payload?.guiche ?? payload?.counter ?? payload?.desk ?? '';
-    return `Senha ${num}. Guichê ${guiche}.`;
-  }
-
-  async function onCallReceived(payload) {
-    if (!payload?.numero || !payload?.guiche) return;
-    const texto = montarFrase(payload);
-    await playAlertThenSpeak(texto);
-  }
 
   async function fetchEstado() {
     try {
@@ -125,11 +22,7 @@
         : 'empty';
       const current = state.dados.ticketAtual;
       if (current.numero) {
-        const id = `${current.numero}|${current.guiche}`;
-        if (id !== lastCallId) {
-          lastCallId = id;
-          onCallReceived(current);
-        }
+        se.onCall({ numero: current.numero, guiche: current.guiche });
       }
     } catch (e) {
       console.error(e);
@@ -281,8 +174,6 @@
         clearInterval(interval);
         interval = setInterval(fetchEstado, 4000);
       }
-    } else if (view === 'mobile' && !document.hidden) {
-      requestWakeLock();
     }
   });
 })();
