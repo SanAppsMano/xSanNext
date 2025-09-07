@@ -22,11 +22,6 @@ let lastTs = 0;
 let lastId = '';
 let lastPriority = 0;
 let intervalId = null;
-let nudgeIntervalId = null;
-let ws = null;
-let sse = null;
-let ably = null;
-let resetting = false;
 let nextListMax = 4;
 let lastNormals = [];
 let lastPrios = [];
@@ -291,60 +286,7 @@ function startPolling() {
   intervalId = setInterval(fetchCurrent, 5000);
 }
 
-function stopIntervals() {
-  clearInterval(intervalId);
-  intervalId = null;
-  clearInterval(nudgeIntervalId);
-  nudgeIntervalId = null;
-}
-
-function disconnectRealtime() {
-  try { ws?.close(1000); } catch {}
-  try { sse?.close(); } catch {}
-  try { ably?.close(); } catch {}
-}
-
-function clearLocal() {
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('xsn_monitor_') || key === 'auth' || key === 'company') {
-      localStorage.removeItem(key);
-    }
-  });
-}
-
-function navigateToRoot() {
-  window.location.replace('/');
-}
-
-function resetMonitorUI() {
-  currentEl.textContent = '—';
-  currentEl.classList.remove('priority', 'manual');
-  if (priorityEl) priorityEl.textContent = '';
-  nameEl.textContent = '';
-  idEl.textContent = '';
-  lastCall = 0;
-  lastTs = 0;
-  lastId = '';
-  lastPriority = 0;
-  const nextContainer = document.getElementById('next-list');
-  if (nextContainer) nextContainer.innerHTML = '';
-  lastNormals = [];
-  lastPrios = [];
-  renderQueues([], []);
-}
-
-async function handleResetCadastroMonitor() {
-  resetting = true;
-  resetMonitorUI();
-  stopIntervals();
-  disconnectRealtime();
-  clearLocal();
-  try { toast('Sessão redefinida'); } catch {}
-  navigateToRoot();
-}
-
 document.addEventListener('visibilitychange', () => {
-  if (resetting) return;
   if (document.hidden) {
     clearInterval(intervalId);
     intervalId = null;
@@ -364,12 +306,11 @@ applyViewMode();
 initPanels();
 initControls();
 startPolling();
-nudgeIntervalId = setInterval(() => {
+
+setInterval(() => {
   const label = document.querySelector('.calling-label');
   if (label) {
     label.classList.add('nudge');
     setTimeout(() => label.classList.remove('nudge'), 1000);
   }
 }, 180000);
-
-window.addEventListener('xsn:reset', handleResetCadastroMonitor);
