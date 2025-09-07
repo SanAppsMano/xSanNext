@@ -16,15 +16,21 @@
 </head>
 <body class="view-auto">
   <div id="unlock-overlay">Clique ou toque para ativar o som</div>
-  <header class="header-controls">
-    <div class="controls-left">
-      <label><input type="checkbox" id="audio-toggle"> Som</label>
-      <label><input type="checkbox" id="tts-toggle"> Falar</label>
-      <label><input type="checkbox" id="guiche-toggle"> Dizer Guichê</label>
+  <header id="config-panel" class="header-controls collapsed">
+    <div id="config-header" class="panel-header">
+      <h2>Configurações</h2>
+      <span id="config-chevron" class="chevron">▸</span>
     </div>
-    <div class="controls-right">
-      <select id="sound-select"></select>
-      <button id="test-sound">Testar som</button>
+    <div id="config-content" class="config-content">
+      <div class="controls-left">
+        <label><input type="checkbox" id="audio-toggle"> Som</label>
+        <label><input type="checkbox" id="tts-toggle"> Falar</label>
+        <label><input type="checkbox" id="guiche-toggle"> Dizer Guichê</label>
+      </div>
+      <div class="controls-right">
+        <select id="sound-select"></select>
+        <button id="test-sound">Testar som</button>
+      </div>
     </div>
   </header>
   <main id="monitor" class="monitor-grid">
@@ -37,15 +43,23 @@
       <div id="current-id" class="id-label"></div>
     </section>
     <section id="next-list" class="next-list"></section>
-    <section id="queues-panel" class="queues-panel">
-      <details open class="queue-normal">
-        <summary>Normais <span id="normal-count" class="badge normal">0</span></summary>
-        <ul id="normal-queue"></ul>
-      </details>
-      <details open class="queue-priority">
-        <summary>Preferenciais <span id="priority-count" class="badge priority">0</span></summary>
-        <ul id="priority-queue"></ul>
-      </details>
+    <section id="queues-panel" class="queues-panel collapsed">
+      <div id="queues-header" class="panel-header">
+        <h2>Filas</h2>
+        <span class="badge normal">Normais: <span id="normal-count">0</span></span>
+        <span class="badge priority">Preferenciais: <span id="priority-count">0</span></span>
+        <span id="queues-chevron" class="chevron">▸</span>
+      </div>
+      <div id="queues-body" class="queues-body">
+        <div class="queue-list">
+          <h3>Normais</h3>
+          <ul id="normal-queue"></ul>
+        </div>
+        <div class="queue-list">
+          <h3>Preferenciais</h3>
+          <ul id="priority-queue"></ul>
+        </div>
+      </div>
     </section>
   </main>
   <audio id="unlock-audio" preload="auto" src="/sounds/alert.mp3"></audio>
