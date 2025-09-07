@@ -622,6 +622,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const sec = String(s % 60).padStart(2,'0');
     return `${h}:${m}:${sec}`;
   };
+
+  function getCurrentCallData() {
+    const numero = currentCallNum || '';
+    const guicheLabel = attendantInput.value?.trim() || '';
+    const name = ticketNames[numero] || '';
+    const guiche = guicheLabel;
+    const preferencial = prioritySet.has(numero);
+    return { numero, guicheLabel, name, guiche, preferencial };
+  }
+
+  async function publishCall(payload) {
+    try {
+      if (window.channel && typeof window.channel.publish === 'function') {
+        await channel.publish('call', payload);
+      }
+    } catch (err) {
+      console.error('Falha ao publicar chamado:', err);
+    }
+  }
   updateTicketSetter();
 
  /** Renderiza o QR Code e configura interação */
@@ -1471,6 +1490,14 @@ function startBouncingCompanyName(text) {
       }
       const { called, attendant } = await res.json();
       updateCall(called, attendant);
+      await publishCall({
+        numero: called,
+        guiche: attendant,
+        guicheLabel: id,
+        name: ticketNames[called] || '',
+        preferencial: prioritySet.has(called),
+        ts: Date.now(),
+      });
       refreshAll(t);
     };
     btnNextPref.onclick = async () => {
@@ -1499,6 +1526,14 @@ function startBouncingCompanyName(text) {
       }
       const { called, attendant } = await res.json();
       updateCall(called, attendant);
+      await publishCall({
+        numero: called,
+        guiche: attendant,
+        guicheLabel: id,
+        name: ticketNames[called] || '',
+        preferencial: prioritySet.has(called),
+        ts: Date.now(),
+      });
       refreshAll(t);
     };
     btnRepeat.onclick = async () => {
@@ -1509,6 +1544,12 @@ function startBouncingCompanyName(text) {
       playAlert();
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
+      await publishCall({
+        ...getCurrentCallData(),
+        guiche: attendant,
+        repeat: true,
+        ts: Date.now(),
+      });
       refreshAll(t);
     };
     btnDone.onclick = async () => {
