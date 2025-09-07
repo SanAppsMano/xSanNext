@@ -11,21 +11,45 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-E0N82XM9NM');
   </script>
 </head>
-<body>
-  <div class="container">
-  <div id="company-name" class="company-name"></div>
-    <h1>Chamando</h1>
-    <div id="current" class="number">—</div>
-    <div id="priority-label" class="priority-label"></div>
-    <div id="current-name" class="name"></div>
-    <div id="current-id" class="id-label"></div>
-  </div>
+<body class="view-auto">
   <div id="unlock-overlay">Clique ou toque para ativar o som</div>
-   <audio id="alert-sound" preload="auto" src="/sounds/alert.mp3"></audio>
-  <script src="js/monitor.js"></script>
+  <header class="header-controls">
+    <div class="controls-left">
+      <label><input type="checkbox" id="audio-toggle"> Som</label>
+      <label><input type="checkbox" id="tts-toggle"> Falar</label>
+      <label><input type="checkbox" id="guiche-toggle"> Dizer Guichê</label>
+    </div>
+    <div class="controls-right">
+      <select id="sound-select"></select>
+      <button id="test-sound">Testar som</button>
+    </div>
+  </header>
+  <main id="monitor" class="monitor-grid">
+    <section id="now-calling" class="now-calling-card">
+      <div id="company-name" class="company-name"></div>
+      <h1 class="calling-label">Chamando</h1>
+      <div id="current" class="number">—</div>
+      <div id="priority-label" class="priority-label"></div>
+      <div id="current-name" class="name"></div>
+      <div id="current-id" class="id-label"></div>
+    </section>
+    <section id="next-list" class="next-list"></section>
+    <section id="queues-panel" class="queues-panel">
+      <details open class="queue-normal">
+        <summary>Normais <span id="normal-count" class="badge normal">0</span></summary>
+        <ul id="normal-queue"></ul>
+      </details>
+      <details open class="queue-priority">
+        <summary>Preferenciais <span id="priority-count" class="badge priority">0</span></summary>
+        <ul id="priority-queue"></ul>
+      </details>
+    </section>
+  </main>
+  <audio id="unlock-audio" preload="auto" src="/sounds/alert.mp3"></audio>
+  <script src="js/utils/NoSleep.min.js"></script>
+  <script type="module" src="js/monitor.js"></script>
 </body>
 </html>
