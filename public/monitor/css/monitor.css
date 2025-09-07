@@ -1,84 +1,170 @@
-
 /* public/monitor/css/monitor.css */
+:root {
+  --bg-tv: #0B1220;
+  --card-bg: rgba(255,255,255,.05);
+  --card-border: rgba(255,255,255,.10);
+  --normal: #EC4899;
+  --preferencial: #F59E0B;
+  --text: #fff;
+}
+
 body {
   margin: 0;
-  display: flex;
-  height: 100vh;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(#f5f7fa, #e3e3e3);
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-  color: #222;
-}
-.container {
-  text-align: center;
-  background: #fff;
-  padding: 2rem 3rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-h1 {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-  color: #005f8c;
-}
-.company-name {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #005f8c;
-  margin-bottom: 0.25rem;
-}
-.number {
-  font-size: 9rem;
-  font-weight: bold;
-  color: #005f8c;
-}
-.number.manual {
-  color: #e91e63;
-}
-.number.priority {
-  color: #ff9800;
-}
-.priority-label {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #ff9800;
-  margin-top: 0.5rem;
-}
-.name {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #444;
-  margin-top: 0.5rem;
+  font-family: system-ui, sans-serif;
+  background: var(--bg-tv);
+  color: var(--text);
 }
 
-.id-label {
-  font-size: 1.5rem;
-  color: #555;
-  margin-top: 0.25rem;
+/* Shared */
+.numero {
+  line-height: 1;
+  transition: color .3s ease, transform .3s ease;
 }
+.numero.normal { color: var(--normal); }
+.numero.preferencial { color: var(--preferencial); }
 
-.blink {
-  animation: blink 1s linear infinite;
-}
-
-@keyframes blink {
-  0%,50%,100% { opacity:1; }
-  25%,75% { opacity:0; }
-}
-
-/* Overlay para solicitar que o usuário habilite o áudio */
-#unlock-overlay {
+.state-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.7);
-  color: #fff;
+  background: rgba(0,0,0,.8);
   font-size: 2rem;
-  z-index: 1000;
+  z-index: 50;
 }
-#unlock-overlay.hidden {
-  display: none;
+
+/* Mobile view */
+body.view-mobile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+.mobile-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 1rem 2rem;
+  border-radius: .5rem;
+  text-align: center;
+  width: 90%;
+  max-width: 480px;
+}
+.mobile-card .empresa {
+  font-size: 1.25rem;
+  margin-bottom: .5rem;
+}
+.mobile-card .label {
+  font-size: 1rem;
+  opacity: .8;
+  margin-bottom: .25rem;
+}
+.mobile-card .numero {
+  font-size: clamp(4rem, 20vw, 10rem);
+}
+.mobile-card .badge {
+  display: inline-block;
+  margin-top: .25rem;
+  padding: .25rem .5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: .25rem;
+  font-size: .875rem;
+}
+.mobile-card .nome,
+.mobile-card .setor {
+  margin-top: .5rem;
+  font-size: 1rem;
+}
+
+/* TV view */
+body.view-tv {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+#app.view-tv-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.tv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+.tv-header .logo img {
+  height: 40px;
+}
+.tv-main {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+}
+.tv-chamando,
+.tv-proximos {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: .5rem;
+  padding: 1rem;
+}
+.tv-chamando {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.tv-chamando .guiche {
+  font-size: 1.5rem;
+  margin-bottom: .5rem;
+}
+.tv-chamando .numero {
+  font-size: clamp(3rem, 8vw, 11rem);
+}
+.tv-chamando .pill {
+  margin-top: .5rem;
+  padding: .25rem .75rem;
+  border-radius: 9999px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  font-size: 1rem;
+}
+.tv-chamando .nome,
+.tv-chamando .setor {
+  margin-top: .5rem;
+  font-size: 1.25rem;
+}
+.tv-proximos {
+  width: 30%;
+}
+.tv-proximos h2 {
+  margin: 0 0 .5rem 0;
+  font-size: 1.25rem;
+}
+.tv-proximos ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.tv-proximos li {
+  display: flex;
+  justify-content: space-between;
+  padding: .25rem 0;
+  border-bottom: 1px solid var(--card-border);
+  font-size: 1.25rem;
+}
+.tv-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: .5rem 1rem;
+  background: var(--card-bg);
+  border-top: 1px solid var(--card-border);
+  font-size: 1rem;
+}
+.tv-footer .clock {
+  font-variant-numeric: tabular-nums;
 }
