@@ -22,6 +22,10 @@ let lastPriority = 0;
 let intervalId = null;
 let nextListMax = 4;
 
+function normalize(num) {
+  return String(num).padStart(3, '0');
+}
+
 const unlockOverlay = document.getElementById('unlock-overlay');
 const unlockAudio = document.getElementById('unlock-audio');
 const currentEl = document.getElementById('current');
@@ -174,13 +178,23 @@ function renderQueues(normals, prios) {
   priorityCount.textContent = prios.length;
 }
 
-function renderNextList(all) {
+function renderNextList(normals, prios) {
   const container = document.getElementById('next-list');
-  container.innerHTML = '<ul></ul>';
+  container.innerHTML = '<h2 class="text-lg font-semibold mb-2">Próximos</h2><ul></ul>';
   const ul = container.querySelector('ul');
-  all.slice(0, nextListMax).forEach(item => {
+
+  const merged = [];
+  let p = 0, n = 0;
+  while (merged.length < nextListMax && (p < prios.length || n < normals.length)) {
+    if (p < prios.length) merged.push({ num: prios[p++], priority: true });
+    if (merged.length >= nextListMax) break;
+    if (n < normals.length) merged.push({ num: normals[n++], priority: false });
+  }
+
+  merged.forEach(item => {
     const li = document.createElement('li');
-    li.textContent = item.num;
+    const label = item.priority ? `P+${normalize(item.num)}` : normalize(item.num);
+    li.textContent = label;
     if (item.priority) li.classList.add('priority');
     ul.appendChild(li);
   });
@@ -219,11 +233,7 @@ async function fetchCurrent() {
     }
     const { normals, prios } = computeQueues(data);
     renderQueues(normals, prios);
-    const all = [
-      ...prios.map(n => ({ num: n, priority: true })),
-      ...normals.map(n => ({ num: n, priority: false }))
-    ];
-    renderNextList(all);
+    renderNextList(normals, prios);
   } catch (e) {
     console.error('Erro ao buscar currentCall:', e);
   }
