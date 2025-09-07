@@ -11,6 +11,20 @@
     dados: null,
     estado: 'loading'
   };
+  const alertSound = new Audio('/sounds/alert.mp3');
+  let lastTicketNumber = 0;
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    if (view !== 'mobile' || !('wakeLock' in navigator) || wakeLock) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => (wakeLock = null));
+    } catch (e) {
+      console.error('wakeLock', e);
+    }
+  }
+  if (view === 'mobile') requestWakeLock();
 
   async function fetchEstado() {
     try {
@@ -20,6 +34,21 @@
       state.estado = (state.dados.contadores.fila > 0 || state.dados.ticketAtual.numero)
         ? 'active'
         : 'empty';
+      const current = state.dados.ticketAtual.numero;
+      if (current && current !== lastTicketNumber) {
+        alertSound.currentTime = 0;
+        alertSound.play().catch(() => {});
+        const speak = () => {
+          if ('speechSynthesis' in window) {
+            const { numero, tipo, guiche } = state.dados.ticketAtual;
+            const utter = new SpeechSynthesisUtterance(`Senha ${numero} ${tipo === 'Preferencial' ? 'preferencial ' : ''}${guiche ? 'guichê ' + guiche : ''}`);
+            utter.lang = 'pt-BR';
+            speechSynthesis.speak(utter);
+          }
+        };
+        alertSound.addEventListener('ended', speak, { once: true });
+        lastTicketNumber = current;
+      }
     } catch (e) {
       console.error(e);
       state.estado = 'error';
@@ -126,9 +155,6 @@
       <header class="tv-header">
         <div class="logo"><img src="/img/icon-sannext.png" alt="SanNext"></div>
         <div class="company-name">${state.empresa}</div>
-        <div class="header-actions">
-          <a class="btn-pdf" href="#" target="_blank">PDF</a>
-        </div>
       </header>
       <div class="tv-main">
         <section class="tv-chamando">
@@ -173,6 +199,8 @@
         clearInterval(interval);
         interval = setInterval(fetchEstado, 4000);
       }
+    } else if (view === 'mobile' && !document.hidden) {
+      requestWakeLock();
     }
   });
 })();
