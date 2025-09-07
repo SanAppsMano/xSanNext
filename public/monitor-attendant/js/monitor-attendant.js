@@ -38,6 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let logoutVersion   = localStorage.getItem('logoutVersion');
   logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
 
+  const alertSound = new Audio('/sounds/alert.mp3');
+  function playAlert() {
+    alertSound.currentTime = 0;
+    alertSound.play().catch(() => {});
+  }
+
   // Se token não veio na URL mas existe em localStorage, usar
   if (!token && cfg && cfg.token) {
     token = cfg.token;
@@ -1452,6 +1458,7 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
+      playAlert();
       const res = await fetch(url);
       if (!res.ok) {
         const msg = await res.text();
@@ -1479,6 +1486,7 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&priority=1`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
+      playAlert();
       const res = await fetch(url);
       if (!res.ok) {
         const msg = await res.text();
@@ -1498,6 +1506,7 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
+      playAlert();
       const { called, attendant } = await (await fetch(url)).json();
       updateCall(called, attendant);
       refreshAll(t);
