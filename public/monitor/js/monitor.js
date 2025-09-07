@@ -22,7 +22,13 @@
         : 'empty';
       const current = state.dados.ticketAtual;
       if (current.numero) {
-        se.onCall({ numero: current.numero, guiche: current.guiche });
+        se.onCall({
+          numero: current.numero,
+          guiche: current.guiche,
+          guicheLabel: current.guiche,
+          name: current.nome,
+          preferencial: current.tipo === 'Preferencial'
+        });
       }
     } catch (e) {
       console.error(e);

@@ -77,25 +77,48 @@ class SoundEngine {
     });
   }
 
-  _phraseFromPayload(p) {
-    const num = p?.numero ?? p?.ticket ?? p?.senha ?? '';
-    const g   = p?.guiche ?? p?.counter ?? p?.desk  ?? '';
-    return `Senha ${num}. Guichê ${g}.`;
+  _phraseForSpeak(p) {
+    const parts = [];
+
+    // 1) Senha
+    const num = (p?.numero ?? p?.ticket ?? p?.senha ?? '').toString().trim();
+    if (num) parts.push(`Senha ${num}.`);
+
+    // 2) Preferencial (se for)
+    const isPref = !!(p?.preferencial ?? p?.preferential ?? p?.isPreferential ?? p?.priority);
+    if (isPref) parts.push('Preferencial.');
+
+    // 3) Identificador (texto cru, sem prefixo “Guichê”)
+    const ident =
+      (p?.guicheLabel ?? p?.identificador ?? p?.identifier ?? p?.counterLabel ?? '')
+      .toString().trim();
+    if (ident) parts.push(`${ident}.`);
+
+    // 4) Nome (se houver)
+    const name = (p?.name ?? p?.nome ?? '').toString().trim();
+    if (name) parts.push(`${name}.`);
+
+    return parts.join(' ');
   }
 
   async onCall(payload) {
-    // debounçar duplicados
-    const id = payload?.id ?? `${payload?.numero}|${payload?.guiche}|${payload?.ts||''}`;
-    if (id && id === this.lastCallId) return;
+    // Base para id no fluxo normal
+    const baseId = payload?.id ?? `${payload?.numero}|${payload?.guiche ?? ''}`;
+
+    // Repetir deve gerar id único para não ser filtrado
+    const id = payload?.repeat ? `${baseId}|repeat|${payload?.ts || Date.now()}` : baseId;
+
+    if (!payload?.repeat && id && id === this.lastCallId) return; // dedupe normal
     this.lastCallId = id;
 
-    const phrase = this._phraseFromPayload(payload);
+    const phrase = this._phraseForSpeak(payload);
 
-    // Enfileira: ALERTA -> FALA (sem sobreposição)
+    // Enfileirar: ALERTA → FALA (sem sobrepor). Se phrase ficar vazia, não falar.
     this.queue = this.queue.then(async () => {
       await this._playAlertPattern();
-      await this._speak(phrase);
+      if (phrase) await this._speak(phrase);
     });
+
     return this.queue;
   }
 

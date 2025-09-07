@@ -26,11 +26,12 @@
       window.addEventListener(evt, ativar, { once: true });
     });
 
-    // >>> INTEGRAÇÃO COM O EVENTO QUE JÁ EXISTE <<<
-    // Exemplo: quando chegar um chamado no monitor:
-    // monitor.on('call', (payload) => {
-    //   se.onCall({ numero: payload.numero, guiche: payload.guiche, id: payload.id });
-    // });
+    if (window.channel && typeof window.channel.subscribe === 'function') {
+      channel.subscribe('call', (payload) => {
+        // payload pode vir de chamada normal ou repeat
+        se.onCall(payload);
+      });
+    }
   </script>
   <script src="/monitor/js/monitor.js" defer></script>
 </body>
