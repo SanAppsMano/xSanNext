@@ -17,8 +17,6 @@ export function buildSpeechText(n, opts) {
   if (n.tipo === 'Preferencial') parts.push('Preferencial');
   parts.push(`senha ${n.number}`);
 
-  if (opts.sayGuiche && n.guiche) parts.push(`Guichê ${n.guiche}`);
-
   let text = parts.join(', ') + '.';
 
   const raw = (n.name ?? '').replace(/\s+/g, ' ').trim();
@@ -26,6 +24,9 @@ export function buildSpeechText(n, opts) {
   if (name.length > 1) {
     text += ' ' + name;
   }
+
+  const g = (n.guiche ?? '').toString().trim();
+  if (opts.sayGuiche && g) text += ' ' + g;
 
   return text;
 }
