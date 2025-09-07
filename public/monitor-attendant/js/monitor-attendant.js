@@ -652,10 +652,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const tenant = cfg?.empresa || document.querySelector('[data-tenant]')?.dataset.tenant;
     const { numero, preferencial, guicheLabel, name } = getCurrentCallData();
     if (!tenant || !numero) return;
+    const payload = {
+      tipo: 'repeat',
+      repeat: true,
+      nonce: makeNonce(),
+      ts: Date.now(),
+      tenant,
+      numero,
+      preferencial,
+      guicheLabel,
+      name,
+    };
+    if (window.channel && typeof window.channel.publish === 'function') {
+      try {
+        await channel.publish('repeat', payload);
+      } catch (err) {
+        console.error('Falha ao publicar repetição:', err);
+      }
+    }
     await fetch('/.netlify/functions/repeat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tenant, numero, preferencial, guicheLabel, name, nonce: makeNonce() })
+      body: JSON.stringify(payload),
     }).catch(() => {});
   }
 
