@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>xSanNext Atendente</title>
+  <link rel="stylesheet" href="css/monitor-attendant.css"/>
+  <!-- Biblioteca de QR Code -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- jsPDF para exportação em PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- Biblioteca para leitura de XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0N82XM9NM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-E0N82XM9NM');
+  </script>
+</head>
+<body>
+  <!-- Overlay de Onboarding -->
+  <div id="onboard-overlay">
+    <div class="onboard-box">
+      <h2>Configurar Monitor</h2>
+      <label>Nome da Empresa</label>
+      <input id="onboard-label" type="text" placeholder="Ex: Loja XYZ" />
+      <label>Senha de Acesso</label>
+      <input id="onboard-password" type="password" placeholder="Defina uma senha" autocomplete="new-password" />
+      <fieldset class="schedule">
+        <legend>Horário de Atendimento</legend>
+        <div class="days-grid">
+          <label><input type="checkbox" name="work-day" value="1" checked><span>Seg</span></label>
+          <label><input type="checkbox" name="work-day" value="2" checked><span>Ter</span></label>
+          <label><input type="checkbox" name="work-day" value="3" checked><span>Qua</span></label>
+          <label><input type="checkbox" name="work-day" value="4" checked><span>Qui</span></label>
+          <label><input type="checkbox" name="work-day" value="5" checked><span>Sex</span></label>
+          <label><input type="checkbox" name="work-day" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="work-day" value="0"><span>Dom</span></label>
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="use1" checked><span>Intervalo</span></label>
+          <input id="start1" type="time" value="08:00" />
+          <span class="dash">às</span>
+          <input id="end1" type="time" value="12:00" />
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="use2" checked><span>Intervalo</span></label>
+          <input id="start2" type="time" value="14:00" />
+          <span class="dash">às</span>
+          <input id="end2" type="time" value="18:00" />
+        </div>
+      </fieldset>
+      <button id="onboard-submit" class="btn">Criar Monitor</button>
+      <button id="onboard-login" class="btn btn-success">Entrar</button>
+      <div id="onboard-error" class="error"></div>
+    </div>
+  </div>
+
+  <!-- Overlay de Login -->
+  <div id="login-overlay" hidden>
+    <div class="login-box">
+      <h2>Login Atendente</h2>
+      <input id="login-company" type="text" placeholder="Empresa" />
+      <input id="login-password" type="password" placeholder="Senha" autocomplete="current-password" />
+      <button id="login-submit">Entrar</button>
+      <div id="login-error" class="error"></div>
+    </div>
+  </div>
+
+<header class="header" hidden>
+  <div class="logo-container">
+    <img src="/img/icon-sannext.png" class="logo-icon" alt="xSanNext logo">
+    <div class="logo-texts">
+      <span class="logo-text">xSanNext</span>
+      <span id="header-label" class="company-text"></span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="qrcode-wrapper">
+      <div id="qrcode"></div>
+      <button id="btn-qr-pdf" class="btn btn-secondary" hidden>PDF</button>
+    </div>
+    <button id="admin-toggle" class="btn btn-secondary" aria-label="Administração">⚙️</button>
+  </div>
+  <nav id="admin-panel" class="admin-panel" hidden>
+    <h3>Administração</h3>
+    <div class="ticket-setter admin-section">
+      <h4>Definir ticket inicial</h4>
+      <label for="next-ticket">Próximo ticket</label>
+      <div class="ticket-input-row">
+        <input id="next-ticket" type="number" min="1" value="1" />
+      </div>
+      <small>Último ticket: <span id="last-ticket">0</span></small>
+      <button id="set-ticket" type="button" class="btn btn-secondary">Definir</button>
+      <div id="ticket-error" class="error"></div>
+    </div>
+
+    <div class="admin-section">
+      <h4>Configurações</h4>
+        <div class="pref-toggle">
+          <input type="checkbox" id="pref-desk-toggle" checked>
+          <label for="pref-desk-toggle">Guichê preferencial</label>
+        </div>
+      <button id="btn-edit-schedule" class="btn btn-secondary">Editar Horário</button>
+      <button id="btn-view-monitor" class="btn btn-secondary">Espelhar Monitor</button>
+      <button id="btn-clone" class="btn btn-secondary">Clonar Atendente</button>
+      <button id="btn-change-password" class="btn btn-secondary">Trocar Senha</button>
+    </div>
+
+    <div class="admin-section" id="queue-config-section">
+      <h4>Configuração da Fila</h4>
+      <button id="btn-import-clients" class="btn btn-secondary">Importar lista de clientes</button>
+    </div>
+
+    <div class="admin-section danger">
+      <h4>Ações avançadas</h4>
+      <button id="btn-delete-config" class="btn btn-warning">Redefinir Cadastro</button>
+    </div>
+
+    <div class="clones-panel">
+      <h4>Clones</h4>
+      <ul id="clone-list" class="list"></ul>
+    </div>
+  </nav>
+</header>
+
+  <!-- Conteúdo Principal -->
+  <main class="main" hidden>
+    <!-- Painel de Identificador -->
+    <section class="id-panel">
+      <label for="attendant-id">Identificador:</label>
+      <input type="text" id="attendant-id" placeholder="Ex: Sala1" />
+    </section>
+
+    <!-- Painel de Chamada -->
+    <section class="call-panel">
+      <div class="queue-summary">
+        <div class="calling">Chamando: <span id="calling">–</span><small id="current-id" class="id-label"></small></div>
+        <div class="waiting">Em espera: <span id="qTotal">–</span> clientes</div>
+        <div class="chips">
+          <span class="badge norm">Normais: <span id="qNorm">0</span></span>
+          <span class="badge pref">Preferenciais: <span id="qPref">0</span></span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-next" class="btn btn-primary" aria-label="Chamar próximo ticket" title="Próximo (N)" data-action="next">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Próximo (N)</span>
+        </button>
+        <button id="btn-next-pref" class="btn btn-pref" aria-label="Chamar próximo ticket preferencial" title="Preferencial (P)" data-action="priority">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 3l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z" fill="currentColor"/></svg>
+          <span>Preferencial (P)</span>
+        </button>
+        <button id="btn-repeat" class="btn btn-ghost" aria-label="Repetir chamada" title="Repetir (R)" data-action="repeat" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m17 2 4 4-4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 11v-1a4 4 0 0 1 4-4h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="m7 22-4-4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 13v1a4 4 0 0 1-4 4H3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Repetir (R)</span>
+        </button>
+        <button id="btn-done" class="btn btn-success" aria-label="Marcar como atendido" title="Atendido (A)" data-action="attended" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Atendido (A)</span>
+        </button>
+        <button id="btn-ticket" class="btn btn-ghost" aria-label="Gerar ticket" title="Ticket Normal (T)" data-action="ticket-normal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 7v10M16 7v10M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span>Ticket Normal (T)</span>
+        </button>
+        <button id="btn-ticket-pref" class="btn btn-pref" aria-label="Gerar ticket preferencial" title="Ticket Preferencial (Shift+T)" data-action="ticket-preferential">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 7v10M16 7v10M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M5 2l1.5 3 3 .4-2.2 2.2.5 3-2.8-1.5-2.8 1.5.5-3L0 5.4l3-.4z" fill="currentColor"/></svg>
+          <span>Ticket Preferencial (Shift+T)</span>
+        </button>
+      </div>
+      <div class="footer-buttons">
+        <button id="btn-report" class="btn btn-outline" aria-label="Gerar relatório" title="Gerar relatório">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 13l3 3 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Relatório</span>
+        </button>
+        <button id="btn-reset" class="btn btn-danger" aria-label="Resetar tickets" title="Resetar tickets">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 6v14h8V6" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M10 6V4h4v2" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>
+          <span>Resetar Tickets</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Fila Virtual -->
+    <section class="queue-panel">
+      <h2>Fila Virtual</h2>
+      <ul id="queue-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico de Cancelados -->
+    <section class="history-panel" hidden>
+      <h2>Cancelados (<span id="cancel-count">0</span>)</h2>
+      <div id="cancel-thumbs" class="cancel-thumbs"></div>
+      <ul id="cancel-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico - Perdeu a Vez -->
+    <section class="history-panel" hidden>
+      <h2>Perdeu a Vez (<span id="missed-count">0</span>)</h2>
+      <div id="missed-thumbs" class="missed-thumbs"></div>
+      <ul id="missed-list" class="list"></ul>
+    </section>
+
+    <!-- Histórico de Atendidos -->
+    <section class="history-panel" hidden>
+      <h2>Atendidos (<span id="attended-count">0</span>)</h2>
+      <div id="attended-thumbs" class="attended-thumbs"></div>
+      <ul id="attended-list" class="list"></ul>
+    </section>
+  </main>
+
+  <script src="js/monitor-attendant.js"></script>
+
+  <!-- Modal de Horário -->
+  <div id="schedule-modal" hidden>
+    <div class="onboard-box">
+      <span id="schedule-close" class="close">&times;</span>
+      <h2>Editar Horário</h2>
+      <fieldset class="schedule">
+        <legend>Horário de Atendimento</legend>
+        <div class="days-grid">
+          <label><input type="checkbox" name="work-day" value="1"><span>Seg</span></label>
+          <label><input type="checkbox" name="work-day" value="2"><span>Ter</span></label>
+          <label><input type="checkbox" name="work-day" value="3"><span>Qua</span></label>
+          <label><input type="checkbox" name="work-day" value="4"><span>Qui</span></label>
+          <label><input type="checkbox" name="work-day" value="5"><span>Sex</span></label>
+          <label><input type="checkbox" name="work-day" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="work-day" value="0"><span>Dom</span></label>
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="edit-use1"><span>Intervalo</span></label>
+          <input id="edit-start1" type="time" value="08:00" />
+          <span class="dash">às</span>
+          <input id="edit-end1" type="time" value="12:00" />
+        </div>
+        <div class="interval-row">
+          <label class="interval-toggle"><input type="checkbox" id="edit-use2"><span>Intervalo</span></label>
+          <input id="edit-start2" type="time" value="14:00" />
+          <span class="dash">às</span>
+          <input id="edit-end2" type="time" value="18:00" />
+        </div>
+      </fieldset>
+      <button id="schedule-save">Salvar</button>
+    </div>
+  </div>
+
+  <!-- Modal de Relatório -->
+  <div id="report-modal" hidden>
+    <div class="modal-content">
+      <span id="report-close" class="close">&times;</span>
+      <h2 id="report-title">Relatório</h2>
+      <div id="report-summary"></div>
+      <table id="report-table"></table>
+      <canvas id="report-chart" width="400" height="200"></canvas>
+      <div class="report-actions">
+        <button id="export-excel" class="btn btn-secondary">Exportar Excel</button>
+        <button id="export-pdf" class="btn btn-secondary">Exportar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Espelhar Monitor -->
+  <div id="view-modal" hidden>
+    <div class="modal-content">
+      <span id="view-close" class="close">&times;</span>
+      <h2>Espelhar Monitor</h2>
+      <div id="view-qrcode"></div>
+      <p>Escaneie para visualizar apenas o painel.</p>
+      <p id="view-copy-info" class="copy-info" hidden>Link copiado para a área de transferência.</p>
+    </div>
+  </div>
+
+  <!-- Modal para Clonar Atendente -->
+  <div id="clone-modal" hidden>
+    <div class="modal-content">
+      <span id="clone-close" class="close">&times;</span>
+      <h2>Clonar Atendente</h2>
+      <div id="clone-qrcode"></div>
+      <p>Escaneie para duplicar esta tela de atendimento.</p>
+      <p id="clone-copy-info" class="copy-info" hidden>Link copiado para a área de transferência.</p>
+    </div>
+  </div>
+
+  <!-- Modal de Troca de Senha -->
+  <div id="password-modal" hidden>
+    <div class="modal-content">
+      <span id="password-close" class="close">&times;</span>
+      <h2>Trocar Senha</h2>
+      <div class="password-wrapper with-toggle">
+        <input id="password-current" type="password" placeholder="Senha Atual" readonly />
+        <button type="button" id="toggle-password-current" class="toggle-password">👁️</button>
+      </div>
+      <div class="password-wrapper">
+        <input id="password-new" type="text" placeholder="Nova Senha" />
+      </div>
+      <button id="password-save">Salvar</button>
+      <div id="password-error" class="error"></div>
+    </div>
+  </div>
+
+  <!-- Modal de Importação de Clientes -->
+  <div id="import-modal" hidden>
+    <div class="modal-content">
+      <span id="import-close" class="close">&times;</span>
+      <h2>Importar lista de clientes</h2>
+      <div id="import-step-source">
+        <input type="file" id="import-file" accept=".txt,.csv,.xlsx" />
+        <textarea id="import-text" placeholder="Cole os nomes aqui, um por linha"></textarea>
+        <button id="import-load" class="btn btn-secondary">Carregar</button>
+        <div id="import-src-error" class="error"></div>
+      </div>
+      <div id="import-step-preview" hidden>
+        <p class="note" id="import-note">A lista será adicionada ao FINAL da Fila Virtual, mantendo a ordem do arquivo.</p>
+        <div id="import-dup-box" class="error" hidden>
+          Há nomes idênticos (ignorando *). Para evitar confusão no Monitor, edite sua lista e acrescente um diferencial (sobrenome, apelido ou código).
+          <table id="import-dup-table"></table>
+        </div>
+        <table id="import-preview-table" title="Marque preferenciais com * no final do nome. Nomes devem ser únicos."></table>
+        <div class="import-counts">Total <span id="import-count-total">0</span> | Preferenciais <span id="import-count-pref">0</span> | Normais <span id="import-count-normal">0</span></div>
+        <div id="import-progress" class="import-progress" hidden>
+          <div id="import-progress-bar" class="import-progress-bar"></div>
+        </div>
+        <div class="import-actions">
+          <button id="import-confirm" class="btn btn-success" disabled>Confirmar importação</button>
+          <button id="import-clear" class="btn btn-secondary">Limpar lista</button>
+          <button id="import-cancel" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
