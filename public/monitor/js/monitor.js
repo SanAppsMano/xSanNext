@@ -1,4 +1,4 @@
-import { speak } from './utils/speech.js';
+import { speak, buildSpeechText } from './utils/speech.js';
 import { initWakeLock, requestWakeLock, releaseWakeLock } from './utils/wakeLock.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -116,13 +116,20 @@ document.addEventListener('click', unlock, { once: true });
 document.addEventListener('touchstart', unlock, { once: true });
 if (unlockOverlay) unlockOverlay.addEventListener('click', unlock);
 
-function alertUser(num, attendant, isPriority) {
+function alertUser(num, attendant, isPriority, name) {
   if (state.audioEnabled) {
     new Audio('/sounds/' + state.selectedSound).play().catch(() => {});
   }
   if (state.ttsEnabled) {
-    let text = isPriority ? `Preferencial, senha ${num}.` : `Senha ${num}.`;
-    if (state.sayGuiche && attendant) text += ` Guichê ${attendant}.`;
+    const text = buildSpeechText(
+      {
+        number: String(num),
+        tipo: isPriority ? 'Preferencial' : 'Normal',
+        guiche: attendant || undefined,
+        name: name
+      },
+      { sayGuiche: state.sayGuiche }
+    );
     speak(text, state.rate, state.pitch);
   }
 }
@@ -201,7 +208,7 @@ async function fetchCurrent() {
       currentCall &&
       (currentCall !== lastCall || timestamp !== lastTs || attendant !== lastId || currentCallPriority !== lastPriority)
     ) {
-      alertUser(currentCall, attendant, currentCallPriority > 0);
+      alertUser(currentCall, attendant, currentCallPriority > 0, name);
       const container = document.getElementById('now-calling');
       container.classList.add('blink');
       setTimeout(() => container.classList.remove('blink'), 5000);

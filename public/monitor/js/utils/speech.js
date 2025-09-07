@@ -10,3 +10,22 @@ export function speak(text, rate = 1, pitch = 1) {
   utter.pitch = pitch;
   speechSynthesis.speak(utter);
 }
+
+export function buildSpeechText(n, opts) {
+  const parts = [];
+
+  if (n.tipo === 'Preferencial') parts.push('Preferencial');
+  parts.push(`senha ${n.number}`);
+
+  if (opts.sayGuiche && n.guiche) parts.push(`Guichê ${n.guiche}`);
+
+  let text = parts.join(', ') + '.';
+
+  const raw = (n.name ?? '').replace(/\s+/g, ' ').trim();
+  const name = raw.slice(0, 80);
+  if (name.length > 1) {
+    text += ' ' + name;
+  }
+
+  return text;
+}
