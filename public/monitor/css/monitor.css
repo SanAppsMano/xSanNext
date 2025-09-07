@@ -51,7 +51,7 @@ body.view-mobile {
   max-width: 480px;
 }
 .mobile-card .empresa {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   margin-bottom: .5rem;
 }
 .mobile-card .label {
@@ -96,6 +96,10 @@ body.view-tv {
 }
 .tv-header .logo img {
   height: 40px;
+}
+.tv-header .company-name {
+  font-size: 2rem;
+  font-weight: 600;
 }
 .tv-main {
   flex: 1;
