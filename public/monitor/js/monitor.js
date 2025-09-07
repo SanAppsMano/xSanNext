@@ -6,9 +6,11 @@ const tenantId = params.get('t');
 const empresa = params.get('empresa');
 
 const state = {
+  queuesCollapsed: JSON.parse(localStorage.getItem('queuesCollapsed') ?? 'true'),
+  configCollapsed: JSON.parse(localStorage.getItem('configCollapsed') ?? 'true'),
   audioEnabled: JSON.parse(localStorage.getItem('audioEnabled') ?? 'true'),
   ttsEnabled: JSON.parse(localStorage.getItem('ttsEnabled') ?? 'true'),
-  sayGuiche: JSON.parse(localStorage.getItem('sayGuiche') ?? 'false'),
+  sayGuiche: JSON.parse(localStorage.getItem('sayGuiche') ?? 'true'),
   selectedSound: localStorage.getItem('selectedSound') || 'alert.mp3',
   rate: parseFloat(localStorage.getItem('rate') || '1'),
   pitch: parseFloat(localStorage.getItem('pitch') || '1'),
@@ -21,6 +23,8 @@ let lastId = '';
 let lastPriority = 0;
 let intervalId = null;
 let nextListMax = 4;
+let lastNormals = [];
+let lastPrios = [];
 
 function normalize(num) {
   return String(num).padStart(3, '0');
@@ -35,8 +39,39 @@ const priorityEl = document.getElementById('priority-label');
 const companyEl = document.getElementById('company-name');
 if (empresa && companyEl) companyEl.textContent = decodeURIComponent(empresa);
 
+const configPanel = document.getElementById('config-panel');
+const configHeader = document.getElementById('config-header');
+const configChevron = document.getElementById('config-chevron');
+const queuesPanel = document.getElementById('queues-panel');
+const queuesHeader = document.getElementById('queues-header');
+const queuesChevron = document.getElementById('queues-chevron');
+
 function saveSetting(key, value) {
   localStorage.setItem(key, value);
+}
+
+function applyPanelState() {
+  configPanel.classList.toggle('collapsed', state.configCollapsed);
+  configChevron.textContent = state.configCollapsed ? '▸' : '▾';
+  queuesPanel.classList.toggle('collapsed', state.queuesCollapsed);
+  queuesChevron.textContent = state.queuesCollapsed ? '▸' : '▾';
+}
+
+function initPanels() {
+  applyPanelState();
+
+  configHeader.addEventListener('click', () => {
+    state.configCollapsed = !state.configCollapsed;
+    saveSetting('configCollapsed', state.configCollapsed);
+    applyPanelState();
+  });
+
+  queuesHeader.addEventListener('click', () => {
+    state.queuesCollapsed = !state.queuesCollapsed;
+    saveSetting('queuesCollapsed', state.queuesCollapsed);
+    applyPanelState();
+    renderQueues(lastNormals, lastPrios);
+  });
 }
 
 function initControls() {
@@ -161,6 +196,13 @@ function renderQueues(normals, prios) {
   const priorityUl = document.getElementById('priority-queue');
   const normalCount = document.getElementById('normal-count');
   const priorityCount = document.getElementById('priority-count');
+  normalCount.textContent = normals.length;
+  priorityCount.textContent = prios.length;
+  if (state.queuesCollapsed) {
+    normalUl.innerHTML = '';
+    priorityUl.innerHTML = '';
+    return;
+  }
   normalUl.innerHTML = '';
   priorityUl.innerHTML = '';
   normals.forEach(n => {
@@ -174,8 +216,6 @@ function renderQueues(normals, prios) {
     li.classList.add('priority');
     priorityUl.appendChild(li);
   });
-  normalCount.textContent = normals.length;
-  priorityCount.textContent = prios.length;
 }
 
 function renderNextList(normals, prios) {
@@ -232,6 +272,8 @@ async function fetchCurrent() {
       lastPriority = currentCallPriority;
     }
     const { normals, prios } = computeQueues(data);
+    lastNormals = normals;
+    lastPrios = prios;
     renderQueues(normals, prios);
     renderNextList(normals, prios);
   } catch (e) {
@@ -261,6 +303,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 applyViewMode();
+initPanels();
 initControls();
 startPolling();
 

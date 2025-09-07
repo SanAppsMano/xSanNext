@@ -26,13 +26,14 @@ body {
 #unlock-overlay.hidden { display: none; }
 
 .header-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 0.5rem 1rem;
   background: #111;
   font-size: 0.9rem;
 }
+#config-header { display: flex; align-items: center; cursor: pointer; }
+#config-header h2 { margin: 0; font-size: 1rem; }
+#config-content { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+.header-controls.collapsed #config-content { display: none; }
 .header-controls label { margin-right: 1rem; }
 .header-controls select,
 .header-controls button { margin-left: 0.5rem; }
@@ -72,11 +73,12 @@ body {
   background: #111;
   border-radius: 8px;
   padding: 1rem;
-  display: grid;
-  gap: 1rem;
 }
-.queues-panel details { background: #222; padding: 0.5rem; border-radius: 6px; }
-.queues-panel summary { cursor: pointer; font-weight: bold; }
+#queues-header { display: flex; align-items: center; cursor: pointer; gap: 1rem; }
+#queues-header h2 { margin: 0; font-size: 1rem; }
+#queues-body { display: grid; gap: 1rem; margin-top: 0.5rem; }
+.queues-panel.collapsed #queues-body { display: none; }
+.queue-list { background: #222; padding: 0.5rem; border-radius: 6px; }
 .badge { padding: 0 0.5rem; border-radius: 4px; font-size: 0.8rem; }
 .badge.normal { background: var(--accent-normal); color: #000; }
 .badge.priority { background: var(--accent-priority); color: #000; }
@@ -102,8 +104,8 @@ body.view-mobile .number { font-size: 6rem; }
   }
   #now-calling { grid-area: now; }
   #next-list { grid-area: next; }
-  #queues-panel { grid-area: queues; grid-template-columns: 1fr 1fr; }
-  #queues-panel details { flex: 1; }
+  #queues-panel { grid-area: queues; }
+  #queues-body { grid-template-columns: 1fr 1fr; }
 }
 @media(max-width:1279px){
   .monitor-grid{ grid-template-columns: 1fr; }
