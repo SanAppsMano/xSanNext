@@ -1,5 +1,6 @@
 import { speak, buildSpeechText } from './utils/speech.js';
 import { initWakeLock, requestWakeLock, releaseWakeLock } from './utils/wakeLock.js';
+import { startPolling, stopAllPolling, setPollingFlag, isPollingOn, newAborter } from './utils/monitor-polling.js';
 
 const params = new URLSearchParams(window.location.search);
 const tenantId = params.get('t');
@@ -21,7 +22,6 @@ let lastCall = 0;
 let lastTs = 0;
 let lastId = '';
 let lastPriority = 0;
-let intervalId = null;
 let nextListMax = 4;
 let lastNormals = [];
 let lastPrios = [];
@@ -47,11 +47,31 @@ const queuesHeader = document.getElementById('queues-header');
 const queuesChevron = document.getElementById('queues-chevron');
 
 function handleResetCadastroMonitor() {
-  localStorage.clear();
+  stopAllPolling();
+  setPollingFlag(false);
+  try { localStorage.removeItem('xsn_monitor_*'); } catch {}
   window.location.reload();
 }
 
 window.addEventListener('xsn:reset', handleResetCadastroMonitor);
+
+function showPollingBanner() {
+  const banner = document.createElement('div');
+  banner.setAttribute('role', 'status');
+  banner.className = 'fixed bottom-4 right-4 rounded-lg bg-yellow-500 text-black px-4 py-2 shadow-lg';
+  banner.textContent = 'Atualização automática desativada.';
+  const btn = document.createElement('button');
+  btn.className = 'ml-3 underline font-semibold';
+  btn.textContent = 'Reativar atualização';
+  btn.addEventListener('click', () => {
+    setPollingFlag(true);
+    banner.remove();
+    fetchCurrent();
+    startPolling(fetchCurrent, 5000);
+  });
+  banner.appendChild(btn);
+  document.body.appendChild(banner);
+}
 
 function saveSetting(key, value) {
   localStorage.setItem(key, value);
@@ -250,7 +270,8 @@ function renderNextList(normals, prios) {
 async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
-    const res = await fetch(url);
+    const signal = newAborter();
+    const res = await fetch(url, { signal });
     if (!res.ok) {
       handleResetCadastroMonitor();
       return;
@@ -301,20 +322,13 @@ async function fetchCurrent() {
   }
 }
 
-function startPolling() {
-  fetchCurrent();
-  intervalId = setInterval(fetchCurrent, 5000);
-}
-
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    clearInterval(intervalId);
-    intervalId = null;
+    stopAllPolling();
   } else {
     requestWakeLock();
     fetchCurrent();
-    clearInterval(intervalId);
-    intervalId = setInterval(fetchCurrent, 5000);
+    startPolling(fetchCurrent, 5000);
   }
 });
 
@@ -325,7 +339,14 @@ window.addEventListener('beforeunload', () => {
 applyViewMode();
 initPanels();
 initControls();
-startPolling();
+
+if (isPollingOn()) {
+  fetchCurrent();
+  startPolling(fetchCurrent, 5000);
+} else {
+  stopAllPolling();
+  showPollingBanner();
+}
 
 setInterval(() => {
   const label = document.querySelector('.calling-label');
