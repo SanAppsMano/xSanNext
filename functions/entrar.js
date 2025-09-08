@@ -54,6 +54,9 @@ export async function handler(event) {
       [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
     });
 
+    const qKey = `queue:${tenantId}:${priority ? "preferencial" : "normal"}`;
+    await redis.zadd(qKey, { score: ticketNumber, member: String(ticketNumber) });
+
     if (priority) {
       await redis.rpush(prefix + "priorityQueue", ticketNumber);
       await redis.sadd(prefix + "prioritySet", String(ticketNumber));
