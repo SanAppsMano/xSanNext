@@ -421,6 +421,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (arr.length > 1) arr.forEach((i) => importDupIdxs.add(i));
     }
   }
+
+  function updateImportUIState() {
+    const qtd = importDupIdxs.size;
+    if (qtd) {
+      importDupBox.hidden = false;
+      importDupBox.textContent = `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${qtd}`;
+    } else {
+      importDupBox.hidden = true;
+      importDupBox.textContent = '';
+    }
+  }
+
+  function updateImportButton() {
+    importConfirm.disabled = importDupIdxs.size > 0;
+  }
   function renderPreview(focusIdx) {
     detectDuplicates(importItems);
     importSource.hidden = true;
@@ -429,42 +444,59 @@ document.addEventListener('DOMContentLoaded', () => {
     importItems.forEach((item, idx) => {
       const tr = document.createElement('tr');
       tr.dataset.idx = idx;
-      if (importDupIdxs.has(idx)) tr.classList.add('dup-row');
+
       const tdIdx = document.createElement('td');
       tdIdx.textContent = idx + 1;
+
       const tdName = document.createElement('td');
-      if (importDupIdxs.has(idx)) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = item.name;
-        input.className = 'dup-input';
-        input.setAttribute('aria-label', 'Corrigir nome duplicado');
-        input.addEventListener('input', (e) => {
-          importItems[idx].name = e.target.value;
-          renderPreview(idx);
-        });
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !e.ctrlKey) {
-            e.preventDefault();
-            const inputs = Array.from(importTable.querySelectorAll('input.dup-input'));
-            const pos = inputs.indexOf(e.target);
-            inputs[pos + 1]?.focus();
-          }
-        });
-        tdName.appendChild(input);
-        const warn = document.createElement('span');
-        warn.className = 'dup-badge';
-        warn.title = 'Nome idêntico encontrado. Edite para diferenciar.';
-        warn.textContent = '⚠';
-        tdName.appendChild(warn);
-      } else {
-        tdName.textContent = item.name;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = item.name || '';
+      input.className = 'nome-input';
+      input.setAttribute('aria-label', 'Corrigir nome duplicado');
+      tdName.appendChild(input);
+
+      const warn = document.createElement('span');
+      warn.className = 'dup-badge';
+      warn.title = 'Nome idêntico encontrado. Edite para diferenciar.';
+      warn.textContent = '⚠';
+      tdName.appendChild(warn);
+
+      function setDupStateForRow(isDup) {
+        input.classList.toggle('dup', isDup);
+        tr.classList.toggle('dup-row', isDup);
+        warn.style.display = isDup ? 'inline' : 'none';
       }
+
+      setDupStateForRow(importDupIdxs.has(idx));
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      });
+
+      input.addEventListener('blur', (e) => {
+        const novo = (e.currentTarget.value || '').trim();
+        if (importItems[idx].name !== novo) {
+          importItems[idx].name = novo;
+        }
+        detectDuplicates(importItems);
+        const aindaDup = importDupIdxs.has(idx);
+        setDupStateForRow(aindaDup);
+
+        updateImportUIState();
+        updateImportButton();
+      });
+
       const tdPref = document.createElement('td');
       if (item.priority) {
         tdPref.textContent = '★';
         tdPref.className = 'pref-badge';
       }
+
       tr.append(tdIdx, tdName, tdPref);
       importTable.appendChild(tr);
     });
@@ -474,21 +506,14 @@ document.addEventListener('DOMContentLoaded', () => {
     importTotal.textContent = total;
     importPref.textContent = pref;
     importNormal.textContent = norm;
-    if (importDupIdxs.size) {
-      importDupBox.hidden = false;
-      importDupBox.textContent = `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${importDupIdxs.size}`;
-      importConfirm.disabled = true;
-    } else {
-      importDupBox.hidden = true;
-      importDupBox.textContent = '';
-      importConfirm.disabled = false;
-    }
+    updateImportUIState();
+    updateImportButton();
     if (typeof focusIdx === 'number') {
       importTable
-        .querySelector(`tr[data-idx="${focusIdx}"] input.dup-input`)
+        .querySelector(`tr[data-idx="${focusIdx}"] input.nome-input`)
         ?.focus();
     } else {
-      importTable.querySelector('input.dup-input')?.focus();
+      importTable.querySelector('input.nome-input.dup')?.focus();
     }
   }
   if (btnImport) {
