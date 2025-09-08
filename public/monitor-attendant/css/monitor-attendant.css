@@ -784,6 +784,21 @@ body {
   color: var(--danger);
 }
 
+#import-modal .dup-row td,
+#import-modal .dup-input {
+  border-color: var(--danger);
+}
+
+#import-modal .dup-badge {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+}
+
+#import-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Modal de edição de horário */
 #schedule-modal {
   position: fixed;
