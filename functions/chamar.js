@@ -1,89 +1,107 @@
-import { redis } from "./utils/redis.js";
-import { KEY_ZSET } from "./utils/tickets.js";
+import { redis } from "../utils/redis.js";
+import { KEY, toScore } from "../utils/tickets.js";
 
-function parseEmpresaFromHost(host) {
-  if (!host) return null;
-  const [sub] = host.split('.');
-  if (!sub || sub === 'www') return null;
-  return sub;
-}
-
-function getCookie(name, cookieHeader) {
-  if (!cookieHeader) return null;
-  const m = cookieHeader.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
-function pickEmpresa(event) {
-  let empresa = null;
-
-  if (event.body) {
-    try {
-      const b = JSON.parse(event.body);
-      if (b && b.empresa) empresa = b.empresa;
-    } catch {}
-  }
-
-  if (!empresa) {
-    empresa = event.headers?.['x-empresa'] || event.headers?.['X-Empresa'];
-  }
-
-  if (!empresa) {
-    empresa = getCookie('empresa', event.headers?.cookie || event.headers?.Cookie);
-  }
-
-  if (!empresa) {
-    empresa = parseEmpresaFromHost(event.headers?.host);
-  }
-
-  return empresa;
-}
+const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
 async function popMin(key) {
   const arr = await redis.zrange(key, 0, 0);
   const member = arr?.[0];
   if (!member) return null;
   await redis.zrem(key, member);
-  const numero = parseInt(member, 10);
+  const numero = toScore(member);
   return Number.isFinite(numero) ? numero : null;
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ ok: false, msg: 'Método não permitido' })
-    };
+  const url = new URL(event.rawUrl);
+  const tenantId = url.searchParams.get("t");
+  const priorityParam = url.searchParams.get("priority");
+  const priority = priorityParam === "1" || priorityParam === "true";
+  const attendant = (url.searchParams.get("id") || "").trim();
+
+  if (!tenantId) {
+    return { statusCode: 400, body: "Missing tenantId" };
   }
 
-  const empresa = pickEmpresa(event);
-
-  if (!empresa) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        ok: false,
-        msg: 'empresa obrigatória (envie no body {empresa}, no header X-Empresa, cookie "empresa" ou via subdomínio)'
-      })
-    };
+  const [pwHash, monitor] = await redis.mget(
+    `tenant:${tenantId}:pwHash`,
+    `monitor:${tenantId}`
+  );
+  if (!pwHash && !monitor) {
+    return { statusCode: 404, body: "Invalid link" };
   }
 
-  try {
-    let numero = await popMin(KEY_ZSET(empresa, 'preferencial'));
-    let tipo = 'preferencial';
+  const prefix = `tenant:${tenantId}:`;
+  const now = Date.now();
 
+  const prevCall = Number((await redis.get(prefix + "currentCall")) || 0);
+  if (prevCall > 0) {
+    const prevCallTs = Number((await redis.get(prefix + "currentCallTs")) || 0);
+    const duration = prevCallTs ? now - prevCallTs : 0;
+    await redis.sadd(prefix + "missedSet", String(prevCall));
+    await redis.srem(prefix + "prioritySet", String(prevCall));
+    await redis.lrem(prefix + "priorityQueue", 0, String(prevCall));
+    await redis.set(prefix + `cancelledTime:${prevCall}`, now);
+    await redis.lpush(
+      prefix + "log:cancelled",
+      JSON.stringify({ ticket: prevCall, ts: now, reason: "missed", duration })
+    );
+    await redis.ltrim(prefix + "log:cancelled", 0, 999);
+    await redis.expire(prefix + "log:cancelled", LOG_TTL);
+  }
+
+  let numero = null;
+  let tipo = "normal";
+
+  if (priority) {
+    numero = await popMin(KEY(tenantId, "preferencial"));
     if (numero == null) {
-      numero = await popMin(KEY_ZSET(empresa, 'normal'));
-      tipo = 'normal';
+      numero = await popMin(KEY(tenantId, "normal"));
+    } else {
+      tipo = "preferencial";
     }
-
+  } else {
+    numero = await popMin(KEY(tenantId, "normal"));
     if (numero == null) {
-      return { statusCode: 200, body: JSON.stringify({ ok: false, msg: 'Sem tickets para chamar' }) };
+      numero = await popMin(KEY(tenantId, "preferencial"));
+      if (numero != null) tipo = "preferencial";
     }
-
-    return { statusCode: 200, body: JSON.stringify({ ok: true, numero, tipo }) };
-  } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ ok: false, msg: 'Falha ao chamar', err: String(err) }) };
   }
+
+  if (numero == null) {
+    return { statusCode: 400, body: "Sem tickets para chamar" };
+  }
+
+  if (tipo === "preferencial") {
+    await redis.lrem(prefix + "priorityQueue", 0, String(numero));
+  }
+
+  const joinTs = await redis.get(prefix + `ticketTime:${numero}`);
+  const wait = joinTs ? now - Number(joinTs) : 0;
+  await redis.set(prefix + `wait:${numero}`, wait);
+
+  await redis.mset({
+    [prefix + "currentCall"]: numero,
+    [prefix + "currentCallTs"]: now,
+    [prefix + "currentCallPriority"]: tipo === "preferencial" ? 1 : 0,
+  });
+  if (attendant) {
+    await redis.set(prefix + "currentAttendant", attendant);
+  } else {
+    await redis.del(prefix + "currentAttendant");
+  }
+  await redis.incr(prefix + "callCounter");
+  await redis.set(prefix + `calledTime:${numero}`, now);
+  await redis.lpush(
+    prefix + "log:called",
+    JSON.stringify({ ticket: numero, ts: now, attendant, wait })
+  );
+  await redis.ltrim(prefix + "log:called", 0, 999);
+  await redis.expire(prefix + "log:called", LOG_TTL);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ called: numero, attendant }),
+  };
 }
 
