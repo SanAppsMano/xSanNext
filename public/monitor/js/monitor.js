@@ -173,6 +173,61 @@ function alertUser(num, attendant, isPriority, name) {
   }
 }
 
+function computeCounts(tickets) {
+  const isWaiting = t => ["waiting", "queued"].includes(String(t.status || "").toLowerCase());
+  const typeOf = t => String(t.type || "").toLowerCase();
+
+  let normal = 0, preferencial = 0;
+  for (const t of (tickets || [])) {
+    if (!isWaiting(t)) continue;
+    const ty = typeOf(t);
+    if (["n", "normal"].includes(ty)) normal++;
+    else if (["p", "preferencial"].includes(ty)) preferencial++;
+  }
+  return { normal, preferencial, total: normal + preferencial };
+}
+
+function updateCounts({ normal, preferencial, total }) {
+  const normalCount = document.getElementById('normal-count');
+  const priorityCount = document.getElementById('priority-count');
+  const totalCount = document.getElementById('total-count');
+  if (normalCount) normalCount.textContent = normal;
+  if (priorityCount) priorityCount.textContent = preferencial;
+  if (totalCount) totalCount.textContent = total;
+}
+
+function openFullscreen() {
+  const elem = document.documentElement;
+  if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+    return Promise.resolve();
+  }
+  if (elem.requestFullscreen) return elem.requestFullscreen();
+  if (elem.webkitRequestFullscreen) return elem.webkitRequestFullscreen();
+  if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
+  return Promise.reject(new Error('Fullscreen API not supported'));
+}
+
+function initFullscreen() {
+  const tryOpen = () => openFullscreen().catch(err => console.warn('Fullscreen failed:', err));
+  window.addEventListener('load', tryOpen);
+  window.addEventListener('keydown', e => {
+    if (e.key === 'F11') {
+      e.preventDefault();
+      tryOpen();
+    }
+  });
+  const handler = () => {
+    tryOpen();
+    document.body.removeEventListener('click', handler);
+    document.body.removeEventListener('touchstart', handler);
+  };
+  document.body.addEventListener('click', handler, { once: true });
+  document.body.addEventListener('touchstart', handler, { once: true });
+}
+
 function computeQueues(data) {
   const cancelled = new Set(data.cancelledNumbers || []);
   const missed = new Set(data.missedNumbers || []);
@@ -194,10 +249,6 @@ function computeQueues(data) {
 function renderQueues(normals, prios) {
   const normalUl = document.getElementById('normal-queue');
   const priorityUl = document.getElementById('priority-queue');
-  const normalCount = document.getElementById('normal-count');
-  const priorityCount = document.getElementById('priority-count');
-  normalCount.textContent = normals.length;
-  priorityCount.textContent = prios.length;
   if (state.queuesCollapsed) {
     normalUl.innerHTML = '';
     priorityUl.innerHTML = '';
@@ -271,9 +322,11 @@ async function fetchCurrent() {
       lastId = attendant;
       lastPriority = currentCallPriority;
     }
+    const counts = computeCounts(data.tickets);
     const { normals, prios } = computeQueues(data);
     lastNormals = normals;
     lastPrios = prios;
+    updateCounts(counts);
     renderQueues(normals, prios);
     renderNextList(normals, prios);
   } catch (e) {
@@ -305,6 +358,7 @@ window.addEventListener('beforeunload', () => {
 applyViewMode();
 initPanels();
 initControls();
+initFullscreen();
 startPolling();
 
 setInterval(() => {
