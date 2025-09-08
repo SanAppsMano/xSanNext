@@ -5,6 +5,8 @@ const params = new URLSearchParams(window.location.search);
 const tenantId = params.get('t');
 const empresa = params.get('empresa');
 
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 function openFullscreen() {
   const el = document.documentElement;
   const request =
@@ -19,7 +21,19 @@ function openFullscreen() {
   }
 }
 
-window.addEventListener('load', openFullscreen);
+if (isMobile) {
+  const fsHandler = () => {
+    openFullscreen();
+    document.body.removeEventListener('click', fsHandler);
+    document.body.removeEventListener('touchstart', fsHandler);
+  };
+  document.body.addEventListener('click', fsHandler, { once: true });
+  document.body.addEventListener('touchstart', fsHandler, { once: true });
+} else {
+  window.addEventListener('load', () => {
+    openFullscreen();
+  });
+}
 
 const state = {
   queuesCollapsed: JSON.parse(localStorage.getItem('queuesCollapsed') ?? 'true'),
@@ -161,7 +175,6 @@ function unlock() {
   }
   unlockAudio.volume = 1;
   initWakeLock();
-  openFullscreen();
   if (unlockOverlay) unlockOverlay.classList.add('hidden');
   document.removeEventListener('click', unlock);
   document.removeEventListener('touchstart', unlock);
