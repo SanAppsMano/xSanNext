@@ -1,7 +1,8 @@
-import { Redis } from "@upstash/redis";
 import { v4 as uuidv4 } from "uuid";
 import errorHandler from "./utils/errorHandler.js";
 import { withinSchedule } from "./utils/schedule.js";
+import { redis } from "../utils/redis.js";
+import { KEY, toScore, toMember } from "../utils/tickets.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -22,7 +23,6 @@ export async function handler(event) {
     const priorityParam = body.priority ?? url.searchParams.get("priority");
     const priority = priorityParam === true || priorityParam === "true";
 
-    const redis  = Redis.fromEnv();
     const [pwHash, monitor, schedRaw] = await redis.mget(
       `tenant:${tenantId}:pwHash`,
       `monitor:${tenantId}`,
@@ -54,8 +54,10 @@ export async function handler(event) {
       [prefix + `ticketTime:${ticketNumber}`]: Date.now(),
     });
 
-    const qKey = `queue:${tenantId}:${priority ? "preferencial" : "normal"}`;
-    await redis.zadd(qKey, { score: ticketNumber, member: String(ticketNumber) });
+    const tipo = priority ? "preferencial" : "normal";
+    const score = toScore(ticketNumber);
+    const member = toMember(tipo, ticketNumber);
+    await redis.zadd(KEY(tenantId, tipo), { score, member });
 
     if (priority) {
       await redis.rpush(prefix + "priorityQueue", ticketNumber);
