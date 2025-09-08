@@ -237,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const importClear    = document.getElementById('import-clear');
   const importCancel   = document.getElementById('import-cancel');
   const importDupBox   = document.getElementById('import-dup-box');
-  const importDupTable = document.getElementById('import-dup-table');
   const importSrcError = document.getElementById('import-src-error');
   const importProgress = document.getElementById('import-progress');
   const importProgressBar = document.getElementById('import-progress-bar');
@@ -366,8 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Importação de lista de clientes
   let importItems = [];
+  const importDupIdxs = new Set();
   function resetImport() {
     importItems = [];
+    importDupIdxs.clear();
     importSource.hidden = false;
     importPreview.hidden = true;
     importFile.value = '';
@@ -375,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     importSrcError.textContent = '';
     importConfirm.disabled = true;
     importDupBox.hidden = true;
-    importDupTable.innerHTML = '';
+    importDupBox.textContent = '';
     importProgress.hidden = true;
     importProgressBar.style.width = '0%';
     importClear.disabled = false;
@@ -384,9 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function normalizeName(str) {
     return str
+      .replace(/\*/g, '')
       .trim()
       .replace(/\s+/g, ' ')
-      .replace(/\*$/, '')
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
@@ -407,24 +408,58 @@ document.addEventListener('DOMContentLoaded', () => {
     return out;
   }
   function detectDuplicates(items) {
+    importDupIdxs.clear();
     const map = new Map();
-    items.forEach((item) => {
-      const key = normalizeName(item.name);
-      if (!map.has(key)) map.set(key, { name: item.name, lines: [item.line] });
-      else map.get(key).lines.push(item.line);
+    items.forEach((item, idx) => {
+      const key = normalizeName(item.name || '');
+      if (!key) return;
+      const arr = map.get(key) || [];
+      arr.push(idx);
+      map.set(key, arr);
     });
-    return Array.from(map.values()).filter((v) => v.lines.length > 1);
+    for (const arr of map.values()) {
+      if (arr.length > 1) arr.forEach((i) => importDupIdxs.add(i));
+    }
   }
-  function renderPreview() {
+  function renderPreview(focusIdx) {
+    detectDuplicates(importItems);
     importSource.hidden = true;
     importPreview.hidden = false;
     importTable.innerHTML = '';
     importItems.forEach((item, idx) => {
       const tr = document.createElement('tr');
+      tr.dataset.idx = idx;
+      if (importDupIdxs.has(idx)) tr.classList.add('dup-row');
       const tdIdx = document.createElement('td');
       tdIdx.textContent = idx + 1;
       const tdName = document.createElement('td');
-      tdName.textContent = item.name;
+      if (importDupIdxs.has(idx)) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = item.name;
+        input.className = 'dup-input';
+        input.setAttribute('aria-label', 'Corrigir nome duplicado');
+        input.addEventListener('input', (e) => {
+          importItems[idx].name = e.target.value;
+          renderPreview(idx);
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.ctrlKey) {
+            e.preventDefault();
+            const inputs = Array.from(importTable.querySelectorAll('input.dup-input'));
+            const pos = inputs.indexOf(e.target);
+            inputs[pos + 1]?.focus();
+          }
+        });
+        tdName.appendChild(input);
+        const warn = document.createElement('span');
+        warn.className = 'dup-badge';
+        warn.title = 'Nome idêntico encontrado. Edite para diferenciar.';
+        warn.textContent = '⚠';
+        tdName.appendChild(warn);
+      } else {
+        tdName.textContent = item.name;
+      }
       const tdPref = document.createElement('td');
       if (item.priority) {
         tdPref.textContent = '★';
@@ -439,24 +474,21 @@ document.addEventListener('DOMContentLoaded', () => {
     importTotal.textContent = total;
     importPref.textContent = pref;
     importNormal.textContent = norm;
-    const dups = detectDuplicates(importItems);
-    if (dups.length) {
+    if (importDupIdxs.size) {
       importDupBox.hidden = false;
-      importDupTable.innerHTML = '';
-      dups.forEach((d) => {
-        const tr = document.createElement('tr');
-        const tdName = document.createElement('td');
-        tdName.textContent = d.name;
-        const tdLines = document.createElement('td');
-        tdLines.textContent = d.lines.join(', ');
-        tr.append(tdName, tdLines);
-        importDupTable.appendChild(tr);
-      });
+      importDupBox.textContent = `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${importDupIdxs.size}`;
       importConfirm.disabled = true;
     } else {
       importDupBox.hidden = true;
-      importDupTable.innerHTML = '';
+      importDupBox.textContent = '';
       importConfirm.disabled = false;
+    }
+    if (typeof focusIdx === 'number') {
+      importTable
+        .querySelector(`tr[data-idx="${focusIdx}"] input.dup-input`)
+        ?.focus();
+    } else {
+      importTable.querySelector('input.dup-input')?.focus();
     }
   }
   if (btnImport) {
@@ -561,6 +593,14 @@ document.addEventListener('DOMContentLoaded', () => {
       importClear.disabled = false;
       importCancel.disabled = false;
       importClose.hidden = false;
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (importModal.hidden) return;
+    if (e.key === 'Enter' && e.ctrlKey && !importConfirm.disabled) {
+      e.preventDefault();
+      importConfirm.click();
     }
   });
 
