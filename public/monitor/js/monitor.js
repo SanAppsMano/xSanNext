@@ -173,20 +173,6 @@ function alertUser(num, attendant, isPriority, name) {
   }
 }
 
-function computeCounts(tickets) {
-  const isWaiting = t => ["waiting", "queued"].includes(String(t.status || "").toLowerCase());
-  const typeOf = t => String(t.type || "").toLowerCase();
-
-  let normal = 0, preferencial = 0;
-  for (const t of (tickets || [])) {
-    if (!isWaiting(t)) continue;
-    const ty = typeOf(t);
-    if (["n", "normal"].includes(ty)) normal++;
-    else if (["p", "preferencial"].includes(ty)) preferencial++;
-  }
-  return { normal, preferencial, total: normal + preferencial };
-}
-
 function updateCounts({ normal, preferencial, total }) {
   const normalCount = document.getElementById('normal-count');
   const priorityCount = document.getElementById('priority-count');
@@ -322,11 +308,14 @@ async function fetchCurrent() {
       lastId = attendant;
       lastPriority = currentCallPriority;
     }
-    const counts = computeCounts(data.tickets);
     const { normals, prios } = computeQueues(data);
     lastNormals = normals;
     lastPrios = prios;
-    updateCounts(counts);
+    updateCounts({
+      normal: normals.length,
+      preferencial: prios.length,
+      total: normals.length + prios.length,
+    });
     renderQueues(normals, prios);
     renderNextList(normals, prios);
   } catch (e) {
