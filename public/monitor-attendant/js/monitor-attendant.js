@@ -10,6 +10,22 @@
  * - Interação QR: expandir e copiar link
  */
 
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function getEmpresa() {
+  return (
+    window.EMPRESA ||
+    document.documentElement.dataset.empresa ||
+    localStorage.getItem('empresa') ||
+    new URLSearchParams(location.search).get('empresa') ||
+    getCookie('empresa') ||
+    null
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams     = new URL(location).searchParams;
   let token           = urlParams.get('t');
@@ -34,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (cfg && typeof cfg.preferentialDesk === 'undefined') {
     cfg.preferentialDesk = true;
     localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+    localStorage.setItem('empresa', cfg.empresa);
   }
   let logoutVersion   = localStorage.getItem('logoutVersion');
   logoutVersion       = logoutVersion !== null ? Number(logoutVersion) : null;
@@ -98,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (res.ok && data.ok) {
         localStorage.removeItem('monitorConfig');
+        localStorage.removeItem('empresa');
         history.replaceState(null, '', '/monitor-attendant/');
         location.reload();
       } else {
@@ -179,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!res.ok || !data.ok) throw new Error();
         cfg.preferentialDesk = preferentialDesk;
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        localStorage.setItem('empresa', cfg.empresa);
       } catch (e) {
         alert('Erro ao salvar configuração.');
         console.error(e);
@@ -309,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cfg.schedule = schedule;
       cfg.preferentialDesk = prefDeskToggle.checked;
       localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+      localStorage.setItem('empresa', cfg.empresa);
       scheduleModal.hidden = true;
     } catch (e) {
       alert('Erro ao salvar horário.');
@@ -1517,7 +1537,15 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
-      const res = await fetch(url);
+      const empresa = getEmpresa();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Empresa': empresa || ''
+        },
+        body: JSON.stringify({ empresa })
+      });
       if (!res.ok) {
         const msg = await res.text();
         if (currentCallNum > 0 && msg.startsWith('Sem tickets')) {
@@ -1544,7 +1572,15 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&priority=1`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
-      const res = await fetch(url);
+      const empresa = getEmpresa();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Empresa': empresa || ''
+        },
+        body: JSON.stringify({ empresa })
+      });
       if (!res.ok) {
         const msg = await res.text();
         if (currentCallNum > 0 && msg.startsWith('Sem tickets')) {
@@ -1563,7 +1599,16 @@ function startBouncingCompanyName(text) {
       const id = attendantInput.value.trim();
       let url = `/.netlify/functions/chamar?t=${t}&num=${currentCallNum}`;
       if (id) url += `&id=${encodeURIComponent(id)}`;
-      const { called, attendant } = await (await fetch(url)).json();
+      const empresa = getEmpresa();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Empresa': empresa || ''
+        },
+        body: JSON.stringify({ empresa })
+      });
+      const { called, attendant } = await res.json();
       updateCall(called, attendant);
       refreshAll(t);
     };
@@ -1689,6 +1734,7 @@ function startBouncingCompanyName(text) {
         const { empresa, schedule, preferentialDesk } = await res.json();
         cfg = { token, empresa, senha: senhaPrompt, schedule, preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        localStorage.setItem('empresa', cfg.empresa);
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(empresaParam)}`);
         showApp(empresa, token);
@@ -1752,6 +1798,7 @@ function startBouncingCompanyName(text) {
         const cfgData = await cfgRes.json();
         cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        localStorage.setItem('empresa', cfg.empresa);
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
@@ -1786,6 +1833,7 @@ function startBouncingCompanyName(text) {
         const cfgData = await cfgRes.json();
         cfg = { token, empresa: cfgData.empresa, senha: pw, schedule: cfgData.schedule, preferentialDesk: cfgData.preferentialDesk };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        localStorage.setItem('empresa', cfg.empresa);
         if (prefDeskToggle) prefDeskToggle.checked = cfg.preferentialDesk !== false;
         history.replaceState(null, '', `/monitor-attendant/?empresa=${encodeURIComponent(cfgData.empresa)}`);
         showApp(cfgData.empresa, token);
@@ -1821,6 +1869,7 @@ function startBouncingCompanyName(text) {
         if (!ok) throw new Error();
         cfg = { token, empresa: label, senha: pw, schedule, preferentialDesk: true };
         localStorage.setItem('monitorConfig', JSON.stringify(cfg));
+        localStorage.setItem('empresa', cfg.empresa);
         history.replaceState(null, '', `/monitor-attendant/?t=${token}&empresa=${encodeURIComponent(label)}`);
         showApp(label, token);
       } catch (e) {
