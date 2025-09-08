@@ -1,5 +1,6 @@
-import { Redis } from "@upstash/redis";
 import errorHandler from "./utils/errorHandler.js";
+import { redis } from "../utils/redis.js";
+import { KEY, toScore, toMember } from "../utils/tickets.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -11,7 +12,6 @@ export async function handler(event) {
       return { statusCode: 400, body: "Missing tenantId" };
     }
 
-    const redis     = Redis.fromEnv();
     const [pwHash, monitor] = await redis.mget(
       `tenant:${tenantId}:pwHash`,
       `monitor:${tenantId}`
@@ -29,11 +29,12 @@ export async function handler(event) {
     );
     let paramNum = manualParam;
     if (!paramNum) {
-      const queueKey = `queue:${tenantId}:${priorityOnly ? "preferencial" : "normal"}`;
-      const res = await redis.zpopmin(queueKey);
-      const member = Array.isArray(res) ? res[0] : res?.member;
+      const queueKey = KEY(tenantId, priorityOnly ? "preferencial" : "normal");
+      const arr = await redis.zrange(queueKey, 0, 0);
+      const member = arr?.[0];
       if (member) {
-        paramNum = String(member);
+        await redis.zrem(queueKey, member);
+        paramNum = String(toScore(member));
       } else {
         if (
           currentCallPrev &&
@@ -169,8 +170,8 @@ export async function handler(event) {
       }
       await redis.srem(prefix + "skippedSet", String(next));
       if (manualParam) {
-        const qkey = `queue:${tenantId}:${isPriorityCall ? "preferencial" : "normal"}`;
-        await redis.zrem(qkey, String(next));
+        const qkey = KEY(tenantId, isPriorityCall ? "preferencial" : "normal");
+        await redis.zrem(qkey, toMember(isPriorityCall ? "preferencial" : "normal", next));
       }
     } else {
       return {

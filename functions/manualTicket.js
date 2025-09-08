@@ -1,4 +1,5 @@
-import { Redis } from "@upstash/redis";
+import { redis } from "../utils/redis.js";
+import { KEY, toScore, toMember } from "../utils/tickets.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -9,7 +10,6 @@ export async function handler(event) {
     return { statusCode: 400, body: "Missing tenantId" };
   }
 
-  const redis = Redis.fromEnv();
   const [pwHash, monitor] = await redis.mget(
     `tenant:${tenantId}:pwHash`,
     `monitor:${tenantId}`
@@ -29,8 +29,10 @@ export async function handler(event) {
     await redis.hset(prefix + "ticketNames", { [ticketNumber]: name });
   }
 
-  const qKey = `queue:${tenantId}:${priority ? "preferencial" : "normal"}`;
-  await redis.zadd(qKey, { score: ticketNumber, member: String(ticketNumber) });
+  const tipo = priority ? "preferencial" : "normal";
+  const score = toScore(ticketNumber);
+  const member = toMember(tipo, ticketNumber);
+  await redis.zadd(KEY(tenantId, tipo), { score, member });
 
   if (priority) {
     await redis.rpush(prefix + "priorityQueue", ticketNumber);
