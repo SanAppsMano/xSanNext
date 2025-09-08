@@ -784,9 +784,12 @@ body {
   color: var(--danger);
 }
 
-#import-modal .dup-row td,
-#import-modal .dup-input {
-  border-color: var(--danger);
+#import-modal .nome-input.dup {
+  border-color: #e11d48;
+}
+
+#import-modal .dup-row td {
+  border-color: #e11d48;
 }
 
 #import-modal .dup-badge {
