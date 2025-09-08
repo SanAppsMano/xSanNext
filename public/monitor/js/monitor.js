@@ -5,36 +5,6 @@ const params = new URLSearchParams(window.location.search);
 const tenantId = params.get('t');
 const empresa = params.get('empresa');
 
-const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-function openFullscreen() {
-  const el = document.documentElement;
-  const request =
-    el.requestFullscreen ||
-    el.webkitRequestFullscreen ||
-    el.msRequestFullscreen;
-  if (request) {
-    try {
-      const ret = request.call(el);
-      if (ret && typeof ret.catch === 'function') ret.catch(() => {});
-    } catch (e) {}
-  }
-}
-
-if (isMobile) {
-  const fsHandler = () => {
-    openFullscreen();
-    document.body.removeEventListener('click', fsHandler);
-    document.body.removeEventListener('touchstart', fsHandler);
-  };
-  document.body.addEventListener('click', fsHandler, { once: true });
-  document.body.addEventListener('touchstart', fsHandler, { once: true });
-} else {
-  window.addEventListener('load', () => {
-    openFullscreen();
-  });
-}
-
 const state = {
   queuesCollapsed: JSON.parse(localStorage.getItem('queuesCollapsed') ?? 'true'),
   configCollapsed: JSON.parse(localStorage.getItem('configCollapsed') ?? 'true'),
