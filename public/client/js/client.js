@@ -245,19 +245,22 @@ async function checkStatus() {
   if (status.preferentialDesk !== false) {
     if (isPriority) {
       label = 'Preferenciais à sua frente:';
-      for (let n = callCounter + 1; n < ticketNumber; n++) {
+      for (let n = 1; n < ticketNumber; n++) {
+        if (n === currentCall) continue;
         if (priNums.includes(n) && !removed.has(n)) ahead++;
       }
     } else {
       label = 'Normais à sua frente:';
-      for (let n = callCounter + 1; n < ticketNumber; n++) {
+      for (let n = 1; n < ticketNumber; n++) {
+        if (n === currentCall) continue;
         if (!priNums.includes(n) && !removed.has(n)) ahead++;
       }
     }
   } else {
     label = 'À sua frente:';
-    for (let n = callCounter + 1; n < ticketNumber; n++) {
-      if (n !== currentCall && !removed.has(n)) ahead++;
+    for (let n = 1; n < ticketNumber; n++) {
+      if (n === currentCall || removed.has(n)) continue;
+      ahead++;
     }
   }
   renderAheadCount(ahead, label);

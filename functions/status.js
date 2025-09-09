@@ -105,17 +105,19 @@ export async function handler(event) {
   const prioritySet  = new Set(priorityNums);
 
   let waiting = 0;
-  for (let i = callCounter + 1; i <= ticketCounter; i++) {
+  for (let i = 1; i <= ticketCounter; i++) {
     if (
-      i !== currentCall &&
-      !cancelledSet.has(i) &&
-      !missedSet.has(i) &&
-      !attendedSet.has(i) &&
-      !skippedSet.has(i) &&
-      !offHoursSet.has(i)
+      i === currentCall ||
+      cancelledSet.has(i) ||
+      missedSet.has(i) ||
+      attendedSet.has(i) ||
+      skippedSet.has(i) ||
+      offHoursSet.has(i) ||
+      (i <= callCounter && !prioritySet.has(i))
     ) {
-      waiting++;
+      continue;
     }
+    waiting++;
   }
 
   return {

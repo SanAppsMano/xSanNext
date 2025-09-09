@@ -223,9 +223,17 @@ function computeQueues(data) {
   const priority = new Set(data.priorityNumbers || []);
   const normals = [];
   const prios = [];
-  for (let i = data.callCounter + 1; i <= data.ticketCounter; i++) {
+  for (let i = 1; i <= data.ticketCounter; i++) {
     if (i === data.currentCall) continue;
-    if (cancelled.has(i) || missed.has(i) || attended.has(i) || skipped.has(i) || offHours.has(i)) continue;
+    if (
+      cancelled.has(i) ||
+      missed.has(i) ||
+      attended.has(i) ||
+      skipped.has(i) ||
+      offHours.has(i)
+    )
+      continue;
+    if (i <= data.callCounter && !priority.has(i)) continue;
     if (priority.has(i)) prios.push(i);
     else normals.push(i);
   }
