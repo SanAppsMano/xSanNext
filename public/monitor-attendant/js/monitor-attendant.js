@@ -421,18 +421,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (arr.length > 1) arr.forEach((i) => importDupIdx.add(i));
     }
   }
+  function atualizarUIEstado() {
+    const qtd = importDupIdx.size;
+    importDupBox.hidden = false;
+    importDupBox.textContent =
+      qtd > 0
+        ? `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${qtd}`
+        : 'Sem duplicados.';
+  }
 
-  function updateDupUI() {
-    const count = importDupIdx.size;
-    if (count > 0) {
-      importDupBox.hidden = false;
-      importDupBox.textContent = `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${count}`;
-      importConfirm.disabled = true;
-    } else {
-      importDupBox.hidden = true;
-      importDupBox.textContent = '';
-      importConfirm.disabled = false;
-    }
+  function atualizarBotaoImportar() {
+    importConfirm.disabled = importDupIdx.size > 0;
   }
 
   function createRow(item, idx) {
@@ -448,37 +447,21 @@ document.addEventListener('DOMContentLoaded', () => {
       input.value = item.name;
       input.className = 'dup-input';
       input.setAttribute('aria-label', 'Corrigir nome duplicado');
-      input.addEventListener('input', (e) => {
-        const prev = new Set(importDupIdx);
-        importItems[idx].name = e.target.value;
-        detectDuplicates(importItems);
-        const affected = new Set([...prev, ...importDupIdx]);
-        affected.forEach((i) => {
-          const row = importTable.querySelector(`tr[data-idx="${i}"]`);
-          if (row) importTable.replaceChild(createRow(importItems[i], i), row);
-        });
-        const curr = importTable.querySelector(`tr[data-idx="${idx}"] input`);
-        if (curr) {
-          const pos = curr.value.length;
-          curr.setSelectionRange(pos, pos);
-          curr.focus();
-        }
-        updateDupUI();
-      });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          if (e.ctrlKey) {
-            if (!importConfirm.disabled) importConfirm.click();
-            return;
-          }
-          const dups = [...importDupIdx].sort((a, b) => a - b);
-          const next = dups[dups.indexOf(idx) + 1];
-          if (next !== undefined) {
-            const nextInput = importTable.querySelector(`tr[data-idx="${next}"] input`);
-            nextInput?.focus();
-          }
+          e.currentTarget.blur();
         }
+      });
+      input.addEventListener('blur', (e) => {
+        const novo = (e.currentTarget.value || '').trim();
+        if (importItems[idx].name !== novo) {
+          importItems[idx].name = novo;
+        }
+        detectDuplicates(importItems);
+        importTable.replaceChild(createRow(importItems[idx], idx), tr);
+        atualizarUIEstado();
+        atualizarBotaoImportar();
       });
       tdName.appendChild(input);
       const warn = document.createElement('span');
@@ -512,7 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
     importTotal.textContent = total;
     importPref.textContent = pref;
     importNormal.textContent = norm;
-    updateDupUI();
+    atualizarUIEstado();
+    atualizarBotaoImportar();
     const first = importTable.querySelector('input.dup-input');
     if (first) first.focus();
   }
