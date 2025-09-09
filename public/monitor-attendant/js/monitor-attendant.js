@@ -237,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const importClear    = document.getElementById('import-clear');
   const importCancel   = document.getElementById('import-cancel');
   const importDupBox   = document.getElementById('import-dup-box');
-  const importDupTable = document.getElementById('import-dup-table');
   const importSrcError = document.getElementById('import-src-error');
   const importProgress = document.getElementById('import-progress');
   const importProgressBar = document.getElementById('import-progress-bar');
@@ -366,8 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Importação de lista de clientes
   let importItems = [];
+  const importDupIdx = new Set();
   function resetImport() {
     importItems = [];
+    importDupIdx.clear();
     importSource.hidden = false;
     importPreview.hidden = true;
     importFile.value = '';
@@ -375,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     importSrcError.textContent = '';
     importConfirm.disabled = true;
     importDupBox.hidden = true;
-    importDupTable.innerHTML = '';
+    importDupBox.textContent = '';
     importProgress.hidden = true;
     importProgressBar.style.width = '0%';
     importClear.disabled = false;
@@ -384,9 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function normalizeName(str) {
     return str
+      .replace(/\*/g, '')
       .trim()
       .replace(/\s+/g, ' ')
-      .replace(/\*$/, '')
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
@@ -406,32 +407,104 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     return out;
   }
-  function detectDuplicates(items) {
+  function detectDuplicates(list) {
     const map = new Map();
-    items.forEach((item) => {
-      const key = normalizeName(item.name);
-      if (!map.has(key)) map.set(key, { name: item.name, lines: [item.line] });
-      else map.get(key).lines.push(item.line);
+    importDupIdx.clear();
+    list.forEach((c, i) => {
+      const key = normalizeName(c.name || '');
+      if (!key) return;
+      const arr = map.get(key) || [];
+      arr.push(i);
+      map.set(key, arr);
     });
-    return Array.from(map.values()).filter((v) => v.lines.length > 1);
+    for (const arr of map.values()) {
+      if (arr.length > 1) arr.forEach((i) => importDupIdx.add(i));
+    }
   }
+
+  function updateDupUI() {
+    const count = importDupIdx.size;
+    if (count > 0) {
+      importDupBox.hidden = false;
+      importDupBox.textContent = `Há nomes idênticos (ignorando *). Corrija os destacados. Restantes: ${count}`;
+      importConfirm.disabled = true;
+    } else {
+      importDupBox.hidden = true;
+      importDupBox.textContent = '';
+      importConfirm.disabled = false;
+    }
+  }
+
+  function createRow(item, idx) {
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    if (importDupIdx.has(idx)) tr.classList.add('dup-row');
+    const tdIdx = document.createElement('td');
+    tdIdx.textContent = idx + 1;
+    const tdName = document.createElement('td');
+    if (importDupIdx.has(idx)) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = item.name;
+      input.className = 'dup-input';
+      input.setAttribute('aria-label', 'Corrigir nome duplicado');
+      input.addEventListener('input', (e) => {
+        const prev = new Set(importDupIdx);
+        importItems[idx].name = e.target.value;
+        detectDuplicates(importItems);
+        const affected = new Set([...prev, ...importDupIdx]);
+        affected.forEach((i) => {
+          const row = importTable.querySelector(`tr[data-idx="${i}"]`);
+          if (row) importTable.replaceChild(createRow(importItems[i], i), row);
+        });
+        const curr = importTable.querySelector(`tr[data-idx="${idx}"] input`);
+        if (curr) {
+          const pos = curr.value.length;
+          curr.setSelectionRange(pos, pos);
+          curr.focus();
+        }
+        updateDupUI();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (e.ctrlKey) {
+            if (!importConfirm.disabled) importConfirm.click();
+            return;
+          }
+          const dups = [...importDupIdx].sort((a, b) => a - b);
+          const next = dups[dups.indexOf(idx) + 1];
+          if (next !== undefined) {
+            const nextInput = importTable.querySelector(`tr[data-idx="${next}"] input`);
+            nextInput?.focus();
+          }
+        }
+      });
+      tdName.appendChild(input);
+      const warn = document.createElement('span');
+      warn.className = 'dup-badge';
+      warn.title = 'Nome idêntico encontrado. Edite para diferenciar.';
+      warn.textContent = '⚠';
+      tdName.appendChild(warn);
+    } else {
+      tdName.textContent = item.name;
+    }
+    const tdPref = document.createElement('td');
+    if (item.priority) {
+      tdPref.textContent = '★';
+      tdPref.className = 'pref-badge';
+    }
+    tr.append(tdIdx, tdName, tdPref);
+    return tr;
+  }
+
   function renderPreview() {
     importSource.hidden = true;
     importPreview.hidden = false;
+    detectDuplicates(importItems);
     importTable.innerHTML = '';
     importItems.forEach((item, idx) => {
-      const tr = document.createElement('tr');
-      const tdIdx = document.createElement('td');
-      tdIdx.textContent = idx + 1;
-      const tdName = document.createElement('td');
-      tdName.textContent = item.name;
-      const tdPref = document.createElement('td');
-      if (item.priority) {
-        tdPref.textContent = '★';
-        tdPref.className = 'pref-badge';
-      }
-      tr.append(tdIdx, tdName, tdPref);
-      importTable.appendChild(tr);
+      importTable.appendChild(createRow(item, idx));
     });
     const total = importItems.length;
     const pref = importItems.filter((i) => i.priority).length;
@@ -439,25 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
     importTotal.textContent = total;
     importPref.textContent = pref;
     importNormal.textContent = norm;
-    const dups = detectDuplicates(importItems);
-    if (dups.length) {
-      importDupBox.hidden = false;
-      importDupTable.innerHTML = '';
-      dups.forEach((d) => {
-        const tr = document.createElement('tr');
-        const tdName = document.createElement('td');
-        tdName.textContent = d.name;
-        const tdLines = document.createElement('td');
-        tdLines.textContent = d.lines.join(', ');
-        tr.append(tdName, tdLines);
-        importDupTable.appendChild(tr);
-      });
-      importConfirm.disabled = true;
-    } else {
-      importDupBox.hidden = true;
-      importDupTable.innerHTML = '';
-      importConfirm.disabled = false;
-    }
+    updateDupUI();
+    const first = importTable.querySelector('input.dup-input');
+    if (first) first.focus();
   }
   if (btnImport) {
     const profile = cfg?.profile || cfg?.role || 'admin';
@@ -561,6 +618,12 @@ document.addEventListener('DOMContentLoaded', () => {
       importClear.disabled = false;
       importCancel.disabled = false;
       importClose.hidden = false;
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey && !importModal.hidden && !importConfirm.disabled) {
+      importConfirm.click();
     }
   });
 
