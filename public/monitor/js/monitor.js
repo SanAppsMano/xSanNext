@@ -98,7 +98,7 @@ function initControls() {
     saveSetting('sayGuiche', state.sayGuiche);
   });
 
-  const sounds = ['alert.mp3'];
+  const sounds = ['alert.mp3','ding.mp3'];
   sounds.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s;
