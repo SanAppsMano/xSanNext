@@ -292,6 +292,11 @@ async function fetchCurrent() {
   try {
     const url = '/.netlify/functions/status' + (tenantId ? `?t=${tenantId}` : '');
     const res = await fetch(url);
+    if (res.status === 404) {
+      stopPolling();
+      window.location.href = '/monitor/';
+      return;
+    }
     const data = await res.json();
     const { currentCall, names = {}, timestamp, attendant, currentCallPriority = 0 } = data;
     currentEl.textContent = currentCall || '—';
@@ -345,7 +350,7 @@ function stopPolling() {
 }
 
 function maybeStartPolling() {
-  if (audioUnlocked && !document.hidden && !intervalId) {
+  if (tenantId && audioUnlocked && !document.hidden && !intervalId) {
     startPolling();
   }
 }
