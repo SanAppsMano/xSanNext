@@ -25,6 +25,7 @@ let intervalId = null;
 let nextListMax = 4;
 let lastNormals = [];
 let lastPrios = [];
+let audioUnlocked = false;
 
 function normalize(num) {
   return String(num).padStart(3, '0');
@@ -144,11 +145,13 @@ function unlock() {
     }).catch(() => {});
   }
   unlockAudio.volume = 1;
+  audioUnlocked = true;
   initWakeLock();
   if (unlockOverlay) unlockOverlay.classList.add('hidden');
   document.removeEventListener('click', unlock);
   document.removeEventListener('touchstart', unlock);
   if (unlockOverlay) unlockOverlay.removeEventListener('click', unlock);
+  maybeStartPolling();
 }
 
 document.addEventListener('click', unlock, { once: true });
@@ -336,15 +339,23 @@ function startPolling() {
   intervalId = setInterval(fetchCurrent, 5000);
 }
 
+function stopPolling() {
+  clearInterval(intervalId);
+  intervalId = null;
+}
+
+function maybeStartPolling() {
+  if (audioUnlocked && !document.hidden && !intervalId) {
+    startPolling();
+  }
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    clearInterval(intervalId);
-    intervalId = null;
-  } else {
+    stopPolling();
+  } else if (audioUnlocked) {
     requestWakeLock();
-    fetchCurrent();
-    clearInterval(intervalId);
-    intervalId = setInterval(fetchCurrent, 5000);
+    maybeStartPolling();
   }
 });
 
@@ -356,7 +367,6 @@ applyViewMode();
 initPanels();
 initControls();
 initFullscreen();
-startPolling();
 
 setInterval(() => {
   const label = document.querySelector('.calling-label');
