@@ -32,7 +32,7 @@ body {
   font-size: 0.9rem;
 }
 #config-header { display: flex; align-items: center; cursor: pointer; }
-#config-header h2 { margin: 0; font-size: 1rem; }
+#config-header h2 { margin: 0; font-size: 0.85rem; }
 #config-content { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
 .header-controls.collapsed #config-content { display: none; }
 .header-controls label { margin-right: 1rem; }
