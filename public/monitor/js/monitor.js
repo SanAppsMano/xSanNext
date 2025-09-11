@@ -27,6 +27,19 @@ let lastNormals = [];
 let lastPrios = [];
 let audioUnlocked = false;
 
+function updateThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const bg = getComputedStyle(document.documentElement)
+    .getPropertyValue('--bg')
+    .trim() || '#000000';
+  meta.setAttribute('content', bg);
+}
+
+const themeObserver = new MutationObserver(updateThemeColor);
+themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+
 function normalize(num) {
   return String(num).padStart(3, '0');
 }
@@ -369,6 +382,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 applyViewMode();
+updateThemeColor();
 initPanels();
 initControls();
 initFullscreen();
