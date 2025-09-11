@@ -831,8 +831,7 @@ body {
 .qrcode-wrapper {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  flex: 0 0 auto;
+  gap: 0.5rem;
 }
 
 .header-actions {
@@ -842,26 +841,25 @@ body {
 }
 
 #btn-qr-pdf {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: auto;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 0;
 }
 
 /* QR Code no cabeçalho */
 .header .qrcode-wrapper #qrcode canvas,
 .header .qrcode-wrapper #qrcode img {
-  width: 32px;
-  height: 32px;
+  width: 64px;
+  height: 64px;
+  border: 2px solid #fff;
 }
 
 @media (min-width: 600px) {
   .header .qrcode-wrapper #qrcode canvas,
   .header .qrcode-wrapper #qrcode img {
-    width: 32px;
-    height: 32px;
+    width: 96px;
+    height: 96px;
   }
 }
 
