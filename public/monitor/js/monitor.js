@@ -354,7 +354,7 @@ async function fetchCurrent() {
 
 function startPolling() {
   fetchCurrent();
-  intervalId = setInterval(fetchCurrent, 5000);
+  intervalId = setInterval(fetchCurrent, 2000);
 }
 
 function stopPolling() {
