@@ -9,7 +9,7 @@ export async function handler(event) {
     const url      = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return error(400, "Missing tenantId");
+      return error(400, "tenantId ausente");
     }
 
     const redis     = Redis.fromEnv();
@@ -18,7 +18,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return error(404, "Invalid link");
+      return error(404, "Link inválido");
     }
     const prefix    = `tenant:${tenantId}:`;
     const paramNum  = url.searchParams.get("num");

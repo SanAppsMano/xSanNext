@@ -2,6 +2,10 @@
 
 Funções serverless e front-end para a fila virtual SuaVez.
 
+## Idioma
+
+Todas as mensagens do projeto estão padronizadas em português.
+
 ## Funcionalidades
 
 ### Para Clientes

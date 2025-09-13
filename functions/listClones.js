@@ -6,13 +6,13 @@ export async function handler(event) {
     const url = new URL(event.rawUrl);
     const token = url.searchParams.get('t');
     if (!token) {
-      return error(400, 'Missing token');
+      return error(400, 'Token ausente');
     }
     const redis = Redis.fromEnv();
     const clones = await redis.smembers(`tenant:${token}:clones`);
     return json(200, { clones });
   } catch (e) {
     console.error('listClones error', e);
-    return error(500, 'Server error');
+    return error(500, 'Erro no servidor');
   }
 }

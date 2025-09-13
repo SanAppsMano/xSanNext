@@ -5,13 +5,13 @@ export async function handler(event) {
   try {
     const { token, cloneId } = JSON.parse(event.body || '{}');
     if (!token || !cloneId) {
-      return error(400, 'Missing fields');
+      return error(400, 'Campos obrigatórios ausentes');
     }
     const redis = Redis.fromEnv();
     await redis.sadd(`tenant:${token}:clones`, cloneId);
     return json(200, { ok: true });
   } catch (e) {
     console.error('registerClone error', e);
-    return error(500, 'Server error');
+    return error(500, 'Erro no servidor');
   }
 }

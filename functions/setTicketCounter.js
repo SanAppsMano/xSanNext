@@ -7,12 +7,12 @@ export async function handler(event) {
     const url = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return error(400, "Missing tenantId");
+      return error(400, "tenantId ausente");
     }
     const { ticket } = JSON.parse(event.body || "{}");
     const nextTicket = Number(ticket);
     if (!nextTicket) {
-      return error(400, "Missing ticket");
+      return error(400, "Ticket ausente");
     }
     const redis = Redis.fromEnv();
     const [pwHash, monitor] = await redis.mget(
@@ -20,13 +20,13 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return error(404, "Invalid link");
+      return error(404, "Link inválido");
     }
     const prefix = `tenant:${tenantId}:`;
     const last   = Number(await redis.get(prefix + "ticketCounter") || 0);
     const called = Number(await redis.get(prefix + "callCounter") || 0);
     if (nextTicket <= last) {
-      return error(400, "Ticket must be greater than last");
+      return error(400, "O ticket deve ser maior que o último");
     }
 
     const gap = nextTicket - last - 1; // números pulados

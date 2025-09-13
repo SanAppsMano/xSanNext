@@ -6,12 +6,12 @@ export async function handler(event) {
   try {
     const { token, senhaAtual, novaSenha } = JSON.parse(event.body || '{}');
     if (!token || !senhaAtual || !novaSenha) {
-      return error(400, 'Missing fields');
+      return error(400, 'Campos obrigatórios ausentes');
     }
     const redis = Redis.fromEnv();
     const pwHash = await redis.get(`tenant:${token}:pwHash`);
     if (!pwHash) {
-      return error(404, 'Invalid token');
+      return error(404, 'Token inválido');
     }
     const valid = await bcrypt.compare(senhaAtual, pwHash);
     if (!valid) {
@@ -23,6 +23,6 @@ export async function handler(event) {
     return json(200, { ok: true });
   } catch (e) {
     console.error('changePassword error', e);
-    return error(500, 'Server error');
+    return error(500, 'Erro no servidor');
   }
 }

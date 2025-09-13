@@ -44,7 +44,7 @@ export async function handler(event) {
     redis = Redis.fromEnv();
   } catch (err) {
     console.error('Redis init error:', err);
-    return error(500, 'Server configuration error');
+    return error(500, 'Erro de configuração do servidor');
   }
 
   try {

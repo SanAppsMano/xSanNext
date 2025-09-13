@@ -9,7 +9,7 @@ export async function handler(event) {
     const tenantId  = url.searchParams.get('t');
     const { password } = JSON.parse(event.body || '{}');
     if (!tenantId || !password) {
-      return error(400, 'Invalid request');
+      return error(400, 'Solicitação inválida');
     }
 
     const redis = Redis.fromEnv();
@@ -18,7 +18,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!storedHash && !monitor) {
-      return error(404, 'Invalid link');
+      return error(404, 'Link inválido');
     }
     if (!storedHash) {
       return json(404, { valid: false });
@@ -33,6 +33,6 @@ export async function handler(event) {
     return json(200, { valid, label });
   } catch (err) {
     console.error('validatePassword error', err);
-    return error(500, 'Server error');
+    return error(500, 'Erro no servidor');
   }
 }

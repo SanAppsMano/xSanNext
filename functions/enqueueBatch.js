@@ -9,7 +9,7 @@ export async function handler(event) {
     const url = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return error(400, "Missing tenantId");
+      return error(400, "tenantId ausente");
     }
 
     let body = {};
@@ -19,7 +19,7 @@ export async function handler(event) {
 
     const items = Array.isArray(body.items) ? body.items : [];
     if (items.length === 0) {
-      return error(400, "Empty list");
+      return error(400, "Lista vazia");
     }
 
     const redis = Redis.fromEnv();
@@ -28,7 +28,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return error(404, "Invalid link");
+      return error(404, "Link inválido");
     }
 
     const prefix = `tenant:${tenantId}:`;
