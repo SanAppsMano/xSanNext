@@ -1,4 +1,5 @@
 import faunadb from 'faunadb';
+import errorHandler from './utils/errorHandler.js';
 import { error, json } from './utils/response.js';
 
 const q = faunadb.query;
@@ -20,8 +21,7 @@ export async function handler(event) {
     };
 
     return json(200, config, { 'Content-Type': 'application/json' });
-  } catch (err) {
-    console.error('Erro em getTenantConfig:', err);
-    return error(err.status || 500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }

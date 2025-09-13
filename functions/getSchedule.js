@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import { error, json } from './utils/response.js';
 
 const redis = new Redis({
@@ -7,11 +8,11 @@ const redis = new Redis({
 });
 
 export async function handler(event) {
-  const token = event.queryStringParameters && event.queryStringParameters.t;
-  if (!token) {
-    return error(400, 'Token ausente');
-  }
   try {
+    const token = event.queryStringParameters && event.queryStringParameters.t;
+    if (!token) {
+      return error(400, 'Token ausente');
+    }
     const [schedRaw, monitorRaw, pwHash] = await redis.mget(
       `tenant:${token}:schedule`,
       `monitor:${token}`,
@@ -39,8 +40,7 @@ export async function handler(event) {
       return json(200, { schedule: stored.schedule || null });
     }
     return error(404, 'Configuração não encontrada');
-  } catch (err) {
-    console.error('getSchedule error:', err);
-    return error(500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }

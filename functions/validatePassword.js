@@ -1,5 +1,6 @@
 // functions/validatePassword.js
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import bcrypt from 'bcryptjs';
 import { error, json } from './utils/response.js';
 
@@ -31,8 +32,7 @@ export async function handler(event) {
       : '';
 
     return json(200, { valid, label });
-  } catch (err) {
-    console.error('validatePassword error', err);
-    return error(500, 'Erro no servidor');
+  } catch (error) {
+    return errorHandler(error);
   }
 }

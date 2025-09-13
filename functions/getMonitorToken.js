@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import bcrypt from 'bcryptjs';
 import { error, json } from './utils/response.js';
 
@@ -12,42 +13,36 @@ function sanitizeEmpresa(name) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return error(405, 'Método não permitido');
-  }
-
-  let body;
   try {
-    if (typeof event.body === 'string') {
-      body = JSON.parse(event.body || '{}');
-    } else {
-      body = event.body || {};
+    if (event.httpMethod !== 'POST') {
+      return error(405, 'Método não permitido');
     }
-  } catch {
-    return error(400, 'JSON inválido');
-  }
 
-  const { empresa, senha } = body;
-  if (!empresa || !senha) {
-    return error(400, 'Dados incompletos');
-  }
+    let body;
+    try {
+      if (typeof event.body === 'string') {
+        body = JSON.parse(event.body || '{}');
+      } else {
+        body = event.body || {};
+      }
+    } catch {
+      return error(400, 'JSON inválido');
+    }
 
-  const empresaKey = sanitizeEmpresa(empresa);
-  if (!empresaKey) {
-    return error(400, 'Nome de empresa inválido');
-  }
+    const { empresa, senha } = body;
+    if (!empresa || !senha) {
+      return error(400, 'Dados incompletos');
+    }
 
-  const key = `monitorByEmpresa:${empresaKey}`;
+    const empresaKey = sanitizeEmpresa(empresa);
+    if (!empresaKey) {
+      return error(400, 'Nome de empresa inválido');
+    }
 
-  let redis;
-  try {
-    redis = Redis.fromEnv();
-  } catch (err) {
-    console.error('Redis init error:', err);
-    return error(500, 'Erro de configuração do servidor');
-  }
+    const key = `monitorByEmpresa:${empresaKey}`;
 
-  try {
+    const redis = Redis.fromEnv();
+
     const token = await redis.get(key);
     if (!token) {
       return error(404, 'Empresa não encontrada');
@@ -70,8 +65,7 @@ export async function handler(event) {
     }
 
     return json(200, { token });
-  } catch (err) {
-    console.error('getMonitorToken error:', err);
-    return error(500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }

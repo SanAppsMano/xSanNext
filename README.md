@@ -23,6 +23,16 @@ Todas as mensagens do projeto estão padronizadas em português.
 - Controle total sobre a participação: pode cancelar a qualquer momento ou silenciar alertas.
 - Atendimento mais ágil graças ao painel de gestão do atendente, reduzindo o tempo de espera.
 
+## Tratamento de Erros
+
+Todas as funções utilizam um `errorHandler` compartilhado que registra problemas e retorna respostas JSON padronizadas no formato:
+
+```json
+{ "error": "mensagem" }
+```
+
+Erros internos do servidor resultam em status `500` com a mensagem genérica `Erro no servidor`.
+
 ## Reset de Monitor
 
 A função `deleteMonitorConfig` apaga o registro do monitor e **todas** as chaves `tenant:{token}:*` associadas no Redis.

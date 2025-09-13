@@ -3,10 +3,12 @@
 import { Redis } from "@upstash/redis";
 import { withinSchedule } from "./utils/schedule.js";
 import { error, json } from "./utils/response.js";
+import errorHandler from "./utils/errorHandler.js";
 
 export async function handler(event) {
-  const url      = new URL(event.rawUrl);
-  const tenantId = url.searchParams.get("t");
+  try {
+    const url      = new URL(event.rawUrl);
+    const tenantId = url.searchParams.get("t");
   if (!tenantId) {
     return error(400, "tenantId ausente");
   }
@@ -143,4 +145,7 @@ export async function handler(event) {
     logoutVersion: Number(logoutVersionRaw || 0),
     preferentialDesk,
   });
+  } catch (error) {
+    return errorHandler(error);
+  }
 }

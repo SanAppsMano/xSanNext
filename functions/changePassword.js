@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import bcrypt from 'bcryptjs';
 import { error, json } from './utils/response.js';
 
@@ -21,8 +22,7 @@ export async function handler(event) {
     await redis.set(`tenant:${token}:pwHash`, newHash);
     await redis.incr(`tenant:${token}:logoutVersion`);
     return json(200, { ok: true });
-  } catch (e) {
-    console.error('changePassword error', e);
-    return error(500, 'Erro no servidor');
+  } catch (error) {
+    return errorHandler(error);
   }
 }
