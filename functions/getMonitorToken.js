@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
+import { error, json } from './utils/response.js';
 
 function sanitizeEmpresa(name) {
   return name
@@ -12,10 +13,7 @@ function sanitizeEmpresa(name) {
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Método não permitido' })
-    };
+    return error(405, 'Método não permitido');
   }
 
   let body;
@@ -26,17 +24,17 @@ export async function handler(event) {
       body = event.body || {};
     }
   } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: 'JSON inválido' }) };
+    return error(400, 'JSON inválido');
   }
 
   const { empresa, senha } = body;
   if (!empresa || !senha) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Dados incompletos' }) };
+    return error(400, 'Dados incompletos');
   }
 
   const empresaKey = sanitizeEmpresa(empresa);
   if (!empresaKey) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Nome de empresa inválido' }) };
+    return error(400, 'Nome de empresa inválido');
   }
 
   const key = `monitorByEmpresa:${empresaKey}`;
@@ -46,16 +44,13 @@ export async function handler(event) {
     redis = Redis.fromEnv();
   } catch (err) {
     console.error('Redis init error:', err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Server configuration error' })
-    };
+    return error(500, 'Server configuration error');
   }
 
   try {
     const token = await redis.get(key);
     if (!token) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Empresa não encontrada' }) };
+      return error(404, 'Empresa não encontrada');
     }
 
     const [config, hash] = await redis.mget(
@@ -63,20 +58,20 @@ export async function handler(event) {
       `tenant:${token}:pwHash`
     );
     if (!config) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
+      return error(404, 'Configuração não encontrada');
     }
     if (!hash) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Senha não configurada' }) };
+      return error(404, 'Senha não configurada');
     }
 
     const valid = await bcrypt.compare(senha, hash);
     if (!valid) {
-      return { statusCode: 403, body: JSON.stringify({ error: 'Senha inválida' }) };
+      return error(403, 'Senha inválida');
     }
 
-    return { statusCode: 200, body: JSON.stringify({ token }) };
+    return json(200, { token });
   } catch (err) {
     console.error('getMonitorToken error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return error(500, err.message);
   }
 }

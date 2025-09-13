@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import errorHandler from "./utils/errorHandler.js";
+import { error, json } from "./utils/response.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -8,7 +9,7 @@ export async function handler(event) {
     const url = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return { statusCode: 400, body: "Missing tenantId" };
+      return error(400, "Missing tenantId");
     }
 
     let body = {};
@@ -18,7 +19,7 @@ export async function handler(event) {
 
     const items = Array.isArray(body.items) ? body.items : [];
     if (items.length === 0) {
-      return { statusCode: 400, body: "Empty list" };
+      return error(400, "Empty list");
     }
 
     const redis = Redis.fromEnv();
@@ -27,7 +28,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return { statusCode: 404, body: "Invalid link" };
+      return error(404, "Invalid link");
     }
 
     const prefix = `tenant:${tenantId}:`;
@@ -80,10 +81,7 @@ export async function handler(event) {
       }
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true, imported: total, preferential: prefCount, normal: normCount }),
-    };
+    return json(200, { ok: true, imported: total, preferential: prefCount, normal: normCount });
   } catch (error) {
     return errorHandler(error);
   }

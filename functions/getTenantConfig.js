@@ -1,39 +1,27 @@
-// functions/getTenantConfig.js
+import faunadb from 'faunadb';
+import { error, json } from './utils/response.js';
 
-const faunadb = require('faunadb')  // exemplo de banco; mantenha o que você já usa
-const q = faunadb.query
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET })
+const q = faunadb.query;
+const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
-exports.handler = async (event) => {
+export async function handler(event) {
   try {
-    const token = event.queryStringParameters.t
-    // --- seu código existente para buscar o tenant ---
+    const token = event.queryStringParameters.t;
     const result = await client.query(
       q.Get(q.Match(q.Index('tenant_by_token'), token))
-    )
-    const tenant = result.data
+    );
+    const tenant = result.data;
 
-    // Monta o JSON de configuração, agora com companyName
     const config = {
-      // campos existentes
-      name:           tenant.name,
-      slug:           tenant.slug,
-      themeColor:     tenant.themeColor,
-      // ------------- NOVO CAMPO -------------
-      companyName:    tenant.companyName || tenant.name,
-      // ... quaisquer outros campos que você já retornava
-    }
+      name: tenant.name,
+      slug: tenant.slug,
+      themeColor: tenant.themeColor,
+      companyName: tenant.companyName || tenant.name,
+    };
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(config),
-      headers: { 'Content-Type': 'application/json' }
-    }
+    return json(200, config, { 'Content-Type': 'application/json' });
   } catch (err) {
-    console.error('Erro em getTenantConfig:', err)
-    return {
-      statusCode: err.status || 500,
-      body: JSON.stringify({ error: err.message })
-    }
+    console.error('Erro em getTenantConfig:', err);
+    return error(err.status || 500, err.message);
   }
 }

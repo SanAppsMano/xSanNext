@@ -1,6 +1,7 @@
 // functions/validatePassword.js
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
+import { error, json } from './utils/response.js';
 
 export async function handler(event) {
   try {
@@ -8,7 +9,7 @@ export async function handler(event) {
     const tenantId  = url.searchParams.get('t');
     const { password } = JSON.parse(event.body || '{}');
     if (!tenantId || !password) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request' }) };
+      return error(400, 'Invalid request');
     }
 
     const redis = Redis.fromEnv();
@@ -17,10 +18,10 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!storedHash && !monitor) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Invalid link' }) };
+      return error(404, 'Invalid link');
     }
     if (!storedHash) {
-      return { statusCode: 404, body: JSON.stringify({ valid: false }) };
+      return json(404, { valid: false });
     }
 
     const valid = await bcrypt.compare(password, storedHash);
@@ -29,12 +30,9 @@ export async function handler(event) {
       ? (await redis.get(`tenant:${tenantId}:label`)) || ''
       : '';
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ valid, label })
-    };
+    return json(200, { valid, label });
   } catch (err) {
     console.error('validatePassword error', err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Server error' }) };
+    return error(500, 'Server error');
   }
 }

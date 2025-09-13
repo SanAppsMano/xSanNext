@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { error, json } from "./utils/response.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -6,7 +7,7 @@ export async function handler(event) {
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
   if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+    return error(400, "Missing tenantId");
   }
 
   const redis  = Redis.fromEnv();
@@ -15,7 +16,7 @@ export async function handler(event) {
     `monitor:${tenantId}`
   );
   if (!pwHash && !monitor) {
-    return { statusCode: 404, body: "Invalid link" };
+    return error(404, "Invalid link");
   }
   const prefix = `tenant:${tenantId}:`;
   const { clientId, ticket, reason = "client", duration } = JSON.parse(event.body || "{}");
@@ -78,20 +79,14 @@ export async function handler(event) {
       await redis.del(prefix + "currentAttendant");
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ cancelled: true, ticket: Number(ticketNum), ts, reason, duration: dur, wait }),
-    };
+    return json(200, { cancelled: true, ticket: Number(ticketNum), ts, reason, duration: dur, wait });
   }
 
   // Se já havia sido atendido, apenas confirme
   if (ticketNum && attended) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ alreadyAttended: true, ticket: Number(ticketNum) }),
-    };
+    return json(200, { alreadyAttended: true, ticket: Number(ticketNum) });
   }
 
   // Nada a cancelar
-  return { statusCode: 200, body: JSON.stringify({ cancelled: false }) };
+  return json(200, { cancelled: false });
 }
