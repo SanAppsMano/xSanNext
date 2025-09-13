@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import { error, json } from './utils/response.js';
 
 const redis = new Redis({
@@ -16,23 +17,23 @@ function sanitizeEmpresa(name) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return error(405, 'Método não permitido');
-  }
-
-  let body;
   try {
-    body = JSON.parse(event.body);
-  } catch {
-    return error(400, 'JSON inválido');
-  }
+    if (event.httpMethod !== 'POST') {
+      return error(405, 'Método não permitido');
+    }
 
-  const { token } = body;
-  if (!token) {
-    return error(400, 'Token ausente');
-  }
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch {
+      return error(400, 'JSON inválido');
+    }
 
-  try {
+    const { token } = body;
+    if (!token) {
+      return error(400, 'Token ausente');
+    }
+
     const data = await redis.get(`monitor:${token}`);
     let empresa;
     if (data) {
@@ -61,8 +62,7 @@ export async function handler(event) {
     } while (cursor !== 0);
 
     return json(200, { ok: true });
-  } catch (err) {
-    console.error('Erro ao deletar no Redis:', err);
-    return error(500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }

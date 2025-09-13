@@ -1,5 +1,6 @@
 // functions/registerMonitor.js
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import bcrypt from 'bcryptjs';
 import { error, json } from './utils/response.js';
 
@@ -28,8 +29,7 @@ export async function handler(event) {
     await redis.del(`tenant:${tenantId}:clones`);
 
     return json(200, { success: true, tenantId });
-  } catch (err) {
-    console.error('registerMonitor error', err);
-    return error(500, 'Erro no servidor');
+  } catch (error) {
+    return errorHandler(error);
   }
 }

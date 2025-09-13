@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import { error, json } from './utils/response.js';
 
 export async function handler(event) {
@@ -10,8 +11,7 @@ export async function handler(event) {
     const redis = Redis.fromEnv();
     await redis.srem(`tenant:${token}:clones`, cloneId);
     return json(200, { ok: true });
-  } catch (e) {
-    console.error('cancelClone error', e);
-    return error(500, 'Erro no servidor');
+  } catch (error) {
+    return errorHandler(error);
   }
 }

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import { error, json } from './utils/response.js';
 
 const redisExt = new Redis({
@@ -16,36 +17,30 @@ function sanitizeEmpresa(name) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return error(405, 'Método não permitido');
-  }
-
-  let body;
   try {
-    body = JSON.parse(event.body);
-  } catch {
-    return error(400, 'JSON inválido');
-  }
+    if (event.httpMethod !== 'POST') {
+      return error(405, 'Método não permitido');
+    }
 
-  const { token, extraDays } = body;
-  if (!token || !extraDays) {
-    return error(400, 'Dados incompletos');
-  }
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch {
+      return error(400, 'JSON inválido');
+    }
 
-  let ttlNow;
-  try {
-    ttlNow = await redisExt.ttl(`monitor:${token}`);
-  } catch (err) {
-    console.error('Redis TTL error:', err);
-    return error(500, err.message);
-  }
+    const { token, extraDays } = body;
+    if (!token || !extraDays) {
+      return error(400, 'Dados incompletos');
+    }
 
-  if (ttlNow < 0) {
-    return error(404, 'Token expirado');
-  }
+    let ttlNow = await redisExt.ttl(`monitor:${token}`);
 
-  const novoTTL = ttlNow + extraDays * 24 * 60 * 60;
-  try {
+    if (ttlNow < 0) {
+      return error(404, 'Token expirado');
+    }
+
+    const novoTTL = ttlNow + extraDays * 24 * 60 * 60;
     const data = await redisExt.get(`monitor:${token}`);
     let empresa;
     if (data) {
@@ -59,8 +54,7 @@ export async function handler(event) {
       }
     }
     return json(200, { ok: true, expiresIn: novoTTL });
-  } catch (err) {
-    console.error('Redis expire error:', err);
-    return error(500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }

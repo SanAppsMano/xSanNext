@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import errorHandler from './utils/errorHandler.js';
 import bcrypt from 'bcryptjs';
 import { error, json } from './utils/response.js';
 
@@ -17,30 +18,30 @@ function sanitizeEmpresa(name) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return error(405, 'Método não permitido');
-  }
-
-  let body;
   try {
-    body = JSON.parse(event.body);
-  } catch {
-    return error(400, 'JSON inválido');
-  }
+    if (event.httpMethod !== 'POST') {
+      return error(405, 'Método não permitido');
+    }
 
-  const { token, empresa, senha, trialDays, schedule, preferentialDesk } = body;
-  if (!token || !empresa || !senha) {
-    return error(400, 'Dados incompletos');
-  }
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch {
+      return error(400, 'JSON inválido');
+    }
 
-  const empresaKey = sanitizeEmpresa(empresa);
-  if (!empresaKey) {
-    return error(400, 'Nome de empresa inválido');
-  }
+    const { token, empresa, senha, trialDays, schedule, preferentialDesk } = body;
+    if (!token || !empresa || !senha) {
+      return error(400, 'Dados incompletos');
+    }
 
-  const ttl = (trialDays ?? 7) * 24 * 60 * 60;
+    const empresaKey = sanitizeEmpresa(empresa);
+    if (!empresaKey) {
+      return error(400, 'Nome de empresa inválido');
+    }
 
-  try {
+    const ttl = (trialDays ?? 7) * 24 * 60 * 60;
+
     const pwHash = await bcrypt.hash(senha, 10);
     await redis.set(
       `monitor:${token}`,
@@ -57,8 +58,7 @@ export async function handler(event) {
       );
     }
     return json(200, { ok: true, expiresIn: ttl });
-  } catch (err) {
-    console.error('Redis error:', err);
-    return error(500, err.message);
+  } catch (error) {
+    return errorHandler(error);
   }
 }
