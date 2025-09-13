@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import scanDelete from "./utils/scanDelete.js";
 import errorHandler from "./utils/errorHandler.js";
+import { error, json } from "./utils/response.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -10,7 +11,7 @@ export async function handler(event) {
     const tenantId   = url.searchParams.get("t");
     const attendant  = url.searchParams.get("id") || "";
     if (!tenantId) {
-      return { statusCode: 400, body: "Missing tenantId" };
+      return error(400, "Missing tenantId");
     }
 
     const redis  = Redis.fromEnv();
@@ -19,7 +20,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return { statusCode: 404, body: "Invalid link" };
+      return error(404, "Invalid link");
     }
     const prefix = `tenant:${tenantId}:`;
     const ts     = Date.now();
@@ -61,10 +62,7 @@ export async function handler(event) {
     await redis.ltrim(prefix + "log:reset", 0, 999);
     await redis.expire(prefix + "log:reset", LOG_TTL);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ reset: true, attendant, ts }),
-    };
+    return json(200, { reset: true, attendant, ts });
   } catch (error) {
     return errorHandler(error);
   }

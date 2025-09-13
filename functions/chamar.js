@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import errorHandler from "./utils/errorHandler.js";
+import { error, json } from "./utils/response.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -8,7 +9,7 @@ export async function handler(event) {
     const url      = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return { statusCode: 400, body: "Missing tenantId" };
+      return error(400, "Missing tenantId");
     }
 
     const redis     = Redis.fromEnv();
@@ -17,7 +18,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return { statusCode: 404, body: "Invalid link" };
+      return error(404, "Invalid link");
     }
     const prefix    = `tenant:${tenantId}:`;
     const paramNum  = url.searchParams.get("num");
@@ -74,7 +75,7 @@ export async function handler(event) {
           });
           await redis.del(prefix + "currentAttendant");
         }
-        return { statusCode: 404, body: "Sem tickets na fila" };
+        return error(404, "Sem tickets na fila");
       }
     }
     let isPriorityCall = priorityOnly;
@@ -157,7 +158,7 @@ export async function handler(event) {
         redis.get(prefix + `ticketTime:${next}`),
       ]);
       if (isCancelled || isMissed || isAttended || !joinTs) {
-        return { statusCode: 400, body: "Ticket não está na fila" };
+        return error(400, "Ticket não está na fila");
       }
       await redis.srem(prefix + "skippedSet", String(next));
       if (isPriorityCall) {
@@ -182,13 +183,13 @@ export async function handler(event) {
       }
       if (next === undefined) {
         if (priorityOnly) {
-          return { statusCode: 404, body: "Sem tickets preferenciais" };
+          return error(404, "Sem tickets preferenciais");
         }
         next = prevCounter + 1;
       }
     } else {
       if (priorityOnly) {
-        return { statusCode: 404, body: "Sem tickets preferenciais" };
+        return error(404, "Sem tickets preferenciais");
       }
       next = prevCounter + 1;
     }
@@ -258,7 +259,7 @@ export async function handler(event) {
         await redis.del(prefix + "currentAttendant");
       }
       await redis.set(counterKey, prevCounter);
-      return { statusCode: 404, body: "Sem tickets na fila" };
+      return error(404, "Sem tickets na fila");
     }
 
     if (!paramNum && (!p || next !== Number(p))) {
@@ -332,10 +333,7 @@ export async function handler(event) {
     await redis.ltrim(prefix + "log:called", 0, 999);
     await redis.expire(prefix + "log:called", LOG_TTL);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ called: next, attendant: identifier, identifier, ts, wait, name }),
-    };
+    return json(200, { called: next, attendant: identifier, identifier, ts, wait, name });
   } catch (error) {
     return errorHandler(error);
   }

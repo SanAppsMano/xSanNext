@@ -2,12 +2,13 @@
 // Do not change write/queue operations. Do not change API shapes.
 import { Redis } from "@upstash/redis";
 import { withinSchedule } from "./utils/schedule.js";
+import { error, json } from "./utils/response.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
   if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+    return error(400, "Missing tenantId");
   }
 
   const redis  = Redis.fromEnv();
@@ -17,7 +18,7 @@ export async function handler(event) {
     `tenant:${tenantId}:schedule`
   );
   if (!pwHash && !monitorRaw) {
-    return { statusCode: 404, body: "Invalid link" };
+    return error(404, "Invalid link");
   }
   const prefix = `tenant:${tenantId}:`;
 
@@ -120,29 +121,26 @@ export async function handler(event) {
     waiting++;
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      currentCall,
-      callCounter,
-      ticketCounter,
-      attendant,
-      timestamp,
-      currentCallPriority,
-      cancelledCount,
-      cancelledNumbers: cancelledNums,
-      missedNumbers: missedNums,
-      missedCount,
-      attendedNumbers: attendedNums,
-      attendedCount,
-      skippedNumbers: skippedNums,
-      offHoursNumbers: offHoursNums,
-      offHoursCount,
-      waiting,
-      names: nameMap || {},
-      priorityNumbers: priorityNums,
-      logoutVersion: Number(logoutVersionRaw || 0),
-      preferentialDesk,
-    }),
-  };
+  return json(200, {
+    currentCall,
+    callCounter,
+    ticketCounter,
+    attendant,
+    timestamp,
+    currentCallPriority,
+    cancelledCount,
+    cancelledNumbers: cancelledNums,
+    missedNumbers: missedNums,
+    missedCount,
+    attendedNumbers: attendedNums,
+    attendedCount,
+    skippedNumbers: skippedNums,
+    offHoursNumbers: offHoursNums,
+    offHoursCount,
+    waiting,
+    names: nameMap || {},
+    priorityNumbers: priorityNums,
+    logoutVersion: Number(logoutVersionRaw || 0),
+    preferentialDesk,
+  });
 }

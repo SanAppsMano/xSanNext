@@ -1,13 +1,14 @@
 import { Redis } from "@upstash/redis";
 import errorHandler from "./utils/errorHandler.js";
 import { withinSchedule } from "./utils/schedule.js";
+import { error, json } from "./utils/response.js";
 
 export async function handler(event) {
   try {
     const url = new URL(event.rawUrl);
     const tenantId = url.searchParams.get("t");
     if (!tenantId) {
-      return { statusCode: 400, body: "Missing tenantId" };
+      return error(400, "Missing tenantId");
     }
 
     const redis = Redis.fromEnv();
@@ -16,7 +17,7 @@ export async function handler(event) {
       `monitor:${tenantId}`
     );
     if (!pwHash && !monitor) {
-      return { statusCode: 404, body: "Invalid link" };
+      return error(404, "Invalid link");
     }
     const prefix = `tenant:${tenantId}:`;
 
@@ -287,27 +288,24 @@ export async function handler(event) {
     const avgWaitHms = toHms(avgWait);
     const avgDurHms  = toHms(avgDur);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        tickets,
-        summary: {
-          totalTickets,
-          attendedCount,
-          cancelledCount,
-          missedCount,
-          calledCount,
-          waitingCount,
-          offHoursCount,
-          avgWait,
-          avgDur,
-          avgWaitHms,
-          avgDurHms,
-          priorityCount,
-          normalCount,
-        },
-      }),
-    };
+    return json(200, {
+      tickets,
+      summary: {
+        totalTickets,
+        attendedCount,
+        cancelledCount,
+        missedCount,
+        calledCount,
+        waitingCount,
+        offHoursCount,
+        avgWait,
+        avgDur,
+        avgWaitHms,
+        avgDurHms,
+        priorityCount,
+        normalCount,
+      },
+    });
   } catch (error) {
     return errorHandler(error);
   }

@@ -1,15 +1,15 @@
-// functions/getSchedule.js
-const { Redis } = require('@upstash/redis');
+import { Redis } from '@upstash/redis';
+import { error, json } from './utils/response.js';
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-exports.handler = async (event) => {
+export async function handler(event) {
   const token = event.queryStringParameters && event.queryStringParameters.t;
   if (!token) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing token' }) };
+    return error(400, 'Missing token');
   }
   try {
     const [schedRaw, monitorRaw, pwHash] = await redis.mget(
@@ -18,32 +18,29 @@ exports.handler = async (event) => {
       `tenant:${token}:pwHash`
     );
     if (!pwHash && !monitorRaw) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Invalid link' }) };
+      return error(404, 'Invalid link');
     }
     if (schedRaw) {
       let parsed;
       try {
         parsed = typeof schedRaw === 'string' ? JSON.parse(schedRaw) : schedRaw;
       } catch {
-        return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos' }) };
+        return error(500, 'Dados inválidos');
       }
-      return { statusCode: 200, body: JSON.stringify({ schedule: parsed }) };
+      return json(200, { schedule: parsed });
     }
     if (monitorRaw) {
       let stored;
       try {
         stored = JSON.parse(monitorRaw);
       } catch {
-        return { statusCode: 500, body: JSON.stringify({ error: 'Dados inválidos' }) };
+        return error(500, 'Dados inválidos');
       }
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ schedule: stored.schedule || null })
-      };
+      return json(200, { schedule: stored.schedule || null });
     }
-    return { statusCode: 404, body: JSON.stringify({ error: 'Configuração não encontrada' }) };
+    return error(404, 'Configuração não encontrada');
   } catch (err) {
     console.error('getSchedule error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return error(500, err.message);
   }
-};
+}

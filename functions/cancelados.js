@@ -1,10 +1,11 @@
 import { Redis } from "@upstash/redis";
+import { error, json } from "./utils/response.js";
 
 export async function handler(event) {
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
   if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+    return error(400, "Missing tenantId");
   }
 
   const redis  = Redis.fromEnv();
@@ -13,7 +14,7 @@ export async function handler(event) {
     `monitor:${tenantId}`
   );
   if (!pwHash && !monitor) {
-    return { statusCode: 404, body: "Invalid link" };
+    return error(404, "Invalid link");
   }
   const prefix = `tenant:${tenantId}:`;
 
@@ -35,15 +36,12 @@ export async function handler(event) {
   const nums = Array.from(cancelledSet).map(n => Number(n));
   const missedNums = Array.from(missedSet).map(n => Number(n));
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      cancelled,
-      numbers: nums,
-      count: nums.length,
-      missed,
-      missedNumbers: missedNums,
-      missedCount: missedNums.length,
-    }),
-  };
+  return json(200, {
+    cancelled,
+    numbers: nums,
+    count: nums.length,
+    missed,
+    missedNumbers: missedNums,
+    missedCount: missedNums.length,
+  });
 }

@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { error, json } from "./utils/response.js";
 
 const LOG_TTL = 60 * 60 * 24 * 30; // 30 days
 
@@ -6,7 +7,7 @@ export async function handler(event) {
   const url      = new URL(event.rawUrl);
   const tenantId = url.searchParams.get("t");
   if (!tenantId) {
-    return { statusCode: 400, body: "Missing tenantId" };
+    return error(400, "Missing tenantId");
   }
 
   const redis  = Redis.fromEnv();
@@ -15,11 +16,11 @@ export async function handler(event) {
     `monitor:${tenantId}`
   );
   if (!pwHash && !monitor) {
-    return { statusCode: 404, body: "Invalid link" };
+    return error(404, "Invalid link");
   }
   const { ticket } = JSON.parse(event.body || "{}");
   if (!ticket) {
-    return { statusCode: 400, body: "Missing ticket" };
+    return error(400, "Missing ticket");
   }
 
   const prefix = `tenant:${tenantId}:`;
@@ -68,8 +69,5 @@ export async function handler(event) {
   await redis.ltrim(prefix + "log:attended", 0, 999);
   await redis.expire(prefix + "log:attended", LOG_TTL);
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ attended: true, ticket: Number(ticket), duration, wait, ts }),
-  };
+  return json(200, { attended: true, ticket: Number(ticket), duration, wait, ts });
 }
