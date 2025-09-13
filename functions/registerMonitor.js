@@ -7,7 +7,7 @@ export async function handler(event) {
   try {
     const { tenantId, label, password } = JSON.parse(event.body || '{}');
     if (!tenantId || !label || !password) {
-      return error(400, 'Missing fields');
+      return error(400, 'Campos obrigatórios ausentes');
     }
 
     // Cria hash seguro da senha
@@ -30,6 +30,6 @@ export async function handler(event) {
     return json(200, { success: true, tenantId });
   } catch (err) {
     console.error('registerMonitor error', err);
-    return error(500, 'Server error');
+    return error(500, 'Erro no servidor');
   }
 }

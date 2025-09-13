@@ -9,7 +9,7 @@ const redis = new Redis({
 export async function handler(event) {
   const token = event.queryStringParameters && event.queryStringParameters.t;
   if (!token) {
-    return error(400, 'Missing token');
+    return error(400, 'Token ausente');
   }
   try {
     const [schedRaw, monitorRaw, pwHash] = await redis.mget(
@@ -18,7 +18,7 @@ export async function handler(event) {
       `tenant:${token}:pwHash`
     );
     if (!pwHash && !monitorRaw) {
-      return error(404, 'Invalid link');
+      return error(404, 'Link inválido');
     }
     if (schedRaw) {
       let parsed;
